@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+backend/data/profile.json
+backend/data/jobs.json
+backend/node_modules/
+backend/dist/
+*.log
+.DS_Store

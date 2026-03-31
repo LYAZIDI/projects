@@ -1,0 +1,38 @@
+[
+  {
+    "id": "f2ce6e9b-0ff4-4b27-b4f4-255669027ec8",
+    "type": "new_job",
+    "title": "8 nouvelles offres trouvées",
+    "body": "De nouvelles offres correspondent à votre profil. Consultez-les maintenant.",
+    "link": "/jobs",
+    "read": false,
+    "createdAt": "2026-03-28T01:58:36.747Z"
+  },
+  {
+    "id": "54ce4358-eb14-4585-a649-c45ae7298cbd",
+    "type": "new_job",
+    "title": "20 nouvelles offres trouvées",
+    "body": "De nouvelles offres correspondent à votre profil. Consultez-les maintenant.",
+    "link": "/jobs",
+    "read": false,
+    "createdAt": "2026-03-28T02:49:55.146Z"
+  },
+  {
+    "id": "0ce3ad97-4fd7-414e-b8ca-8bd1b2b8a252",
+    "type": "new_job",
+    "title": "24 nouvelles offres trouvées",
+    "body": "De nouvelles offres correspondent à votre profil. Consultez-les maintenant.",
+    "link": "/jobs",
+    "read": false,
+    "createdAt": "2026-03-28T02:50:08.619Z"
+  },
+  {
+    "id": "81fd6bcd-1bde-41fc-a349-c5c194aa8a77",
+    "type": "new_job",
+    "title": "7 nouvelles offres trouvées",
+    "body": "De nouvelles offres correspondent à votre profil. Consultez-les maintenant.",
+    "link": "/jobs",
+    "read": false,
+    "createdAt": "2026-03-28T21:20:45.513Z"
+  }
+]
