@@ -10,8 +10,34 @@
  *
  * Pipeline : fetch → normalize → deduplicate → persist
  */
-import { dbInsertMany, dbGetAll } from '../db/fileDb'
+import pool from '../db/pgClient'
 import type { Job, JobSource } from '../types'
+
+async function dbInsertManyJobs(jobs: Job[]): Promise<number> {
+  if (!jobs.length) return 0
+  let added = 0
+  for (const job of jobs) {
+    const { rowCount } = await pool.query(
+      `INSERT INTO jobs (id, title, company, location, contract, salary, remote, score, category, source, tags, description, url, logo, posted_at, fetched_at, discovered_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      [
+        job.id, job.title, job.company, job.location,
+        job.type ?? null, job.salary,
+        job.remote ?? false, job.matchScore ?? 0, null, job.source ?? null,
+        JSON.stringify(job.tags ?? []), job.description ?? null, job.url ?? null,
+        job.logo ?? null, job.postedAt ?? null, job.fetchedAt ?? null,
+      ]
+    )
+    if ((rowCount ?? 0) > 0) added++
+  }
+  return added
+}
+
+async function dbCountJobs(): Promise<number> {
+  const { rows } = await pool.query(`SELECT COUNT(*) FROM jobs`)
+  return parseInt(rows[0].count, 10)
+}
 
 // ─── France Travail ───────────────────────────────────────────────────────────
 
@@ -297,19 +323,36 @@ export async function runDiscoveryPipeline(skills: string[] = []): Promise<{ add
 
   if (!fetched.length) {
     console.log('[Discovery] No API configured — no new real jobs added')
-    return { added: 0, total: dbGetAll('jobs').length, sources: [] }
+    return { added: 0, total: await dbCountJobs(), sources: [] }
   }
 
   // 3. Persist (dedup by id)
-  const added = dbInsertMany('jobs', fetched)
-  const total = dbGetAll('jobs').length
+  const added = await dbInsertManyJobs(fetched)
+  const total = await dbCountJobs()
 
   console.log(`[Discovery] +${added} new jobs from: ${sources.join(', ')} — total: ${total}`)
   return { added, total, sources }
 }
 
-export function getAllStoredJobs(): Job[] {
-  return dbGetAll<Job>('jobs')
+export async function getAllStoredJobs(): Promise<Job[]> {
+  const { rows } = await pool.query(`SELECT * FROM jobs ORDER BY score DESC`)
+  return rows.map(r => ({
+    id:         r.id,
+    title:      r.title,
+    company:    r.company,
+    location:   r.location,
+    type:       r.contract ?? 'CDI',
+    salary:     r.salary,
+    remote:     r.remote,
+    matchScore: r.score ?? 0,
+    source:     r.source,
+    tags:       r.tags ?? [],
+    description: r.description ?? '',
+    url:        r.url ?? '',
+    logo:       r.logo ?? '',
+    postedAt:   r.posted_at ?? '',
+    fetchedAt:  r.fetched_at ?? r.discovered_at ?? '',
+  } as Job))
 }
 
 export async function triggerManualDiscovery(skills: string[] = []): Promise<{ added: number; total: number }> {

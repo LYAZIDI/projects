@@ -1,0 +1,45 @@
+{
+  "cli": {
+    "version": ">= 7.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "npm_config_ignore_scripts": "true"
+      }
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "env": {
+        "npm_config_ignore_scripts": "true"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "npm_config_ignore_scripts": "true"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "votre@email.com",
+        "ascAppId": "VOTRE_APP_STORE_CONNECT_ID",
+        "appleTeamId": "VOTRE_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      }
+    }
+  }
+}

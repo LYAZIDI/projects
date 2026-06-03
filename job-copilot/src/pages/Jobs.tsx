@@ -9,7 +9,7 @@ import {
   RefreshCw, Globe, Settings, ExternalLink, Heart, GitCompare, BookmarkCheck
 } from 'lucide-react'
 
-const API = 'http://localhost:3002'
+const API = ''
 
 interface ScoredJob {
   id: string

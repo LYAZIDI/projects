@@ -5,7 +5,7 @@ import MatchBadge from '../components/MatchBadge'
 import { useCV } from '../context/CVContext'
 import { TrendingUp, Send, Calendar, Target, ChevronRight, FileText, Plus, Search, X, GripVertical, Upload, Star, Zap, Trophy, Sparkles, MapPin, Banknote, Download } from 'lucide-react'
 
-const API = 'http://localhost:3002'
+const API = ''
 
 type Status = 'to_apply' | 'applied' | 'interview' | 'offer' | 'rejected'
 

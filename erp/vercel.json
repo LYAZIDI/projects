@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "framework": null,
+  "buildCommand": "npm install --prefix backend --include=dev && npm run db:generate --prefix backend && npm install --prefix frontend --include=dev && npm run vercel-build --prefix frontend",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30,
+      "includeFiles": "backend/node_modules/.prisma/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.ts" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

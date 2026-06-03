@@ -3,3 +3,9 @@ __pycache__/
 .idea/
 .vscode/
 
+.vercel
+node_modules/
+.claude/
+.env
+.env.*
+*.env

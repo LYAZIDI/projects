@@ -1,14 +1,17 @@
-import pdfParse from 'pdf-parse'
+// Import pdf-parse directly from lib to avoid the test-file loading bug in serverless
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require('pdf-parse/lib/pdf-parse.js')
 import mammoth from 'mammoth'
 import type { ParsedCV, ExperienceItem, EducationItem } from '../types'
 
 // ─── Section headers ──────────────────────────────────────────────────────────
 // Use flexible patterns (.{0,3}) to handle encoding corruption (e.g. é → Ǹ from PDF/DOCX garbling)
 
-const SECTION_EXP    = /exp.{0,3}riences?.{0,20}(professionnelles?)?|parcours.{0,5}professionnel|emplois?/i
-const SECTION_EDU    = /formations?|.{0,2}ducations?|dipl.{0,3}mes?|.{0,2}tudes?/i
-const SECTION_SKILLS = /comp.{0,3}tences?.{0,10}(cl.{0,2}s?)?|skills?/i
-const SECTION_ANY    = /exp.{0,3}rience|formation|comp.{0,3}tence|.{0,2}ducation|langues?|centres?.{0,3}d.int.{0,3}r.{0,2}t|loisirs?|r.{0,3}f.{0,3}rences?|projets?|profil/i
+// \b word boundary prevents matching "IntérimExpérience" or "CDI/Expérience" mid-word
+const SECTION_EXP    = /\bexp.{0,3}riences?.{0,20}(professionnelles?)?|\bparcours.{0,5}professionnel|\bemplois?\b/i
+const SECTION_EDU    = /\b(formations?|.{0,2}ducations?|dipl.{0,3}mes?|.{0,2}tudes?)\b/i
+const SECTION_SKILLS = /\b(comp.{0,3}tences?.{0,10}(cl.{0,2}s?)?|skills?)\b/i
+const SECTION_ANY    = /\b(exp.{0,3}rience|formation|comp.{0,3}tence|.{0,2}ducation|langues?|centres?|loisirs?|r.{0,3}f.{0,3}rences?|projets?|profil)\b/i
 
 // ─── Text extractor ───────────────────────────────────────────────────────────
 
@@ -358,7 +361,7 @@ export async function parseCV(buffer: Buffer, mimetype: string): Promise<ParsedC
   const yearsExperience = estimateYearsExperience(experience)
   const { score, found, missing, sector } = calculateATS(rawText, skills)
 
-  return {
+  const result: any = {
     rawText: rawText.slice(0, 3000),
     name, email, phone, skills,
     experience, education, languages,
@@ -368,4 +371,5 @@ export async function parseCV(buffer: Buffer, mimetype: string): Promise<ParsedC
     yearsExperience,
     sector,
   }
+  return result
 }

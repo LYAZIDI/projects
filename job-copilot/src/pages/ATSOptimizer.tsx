@@ -7,7 +7,7 @@ import {
   Copy, ChevronDown, ChevronUp, ArrowLeft, Loader
 } from 'lucide-react'
 
-const API = 'http://localhost:3002'
+const API = ''
 
 interface ATSSuggestion {
   type: string

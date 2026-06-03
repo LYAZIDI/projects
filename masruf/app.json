@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Masruf",
+    "slug": "masruf",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "masruf",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F0F1A"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.masruf.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Masruf vous envoie des rappels pour ajouter vos dépenses."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F0F1A"
+      },
+      "package": "com.masruf.app",
+      "versionCode": 1,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {},
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "9b0c5b99-a7ef-47c2-bf0b-dd268eb8b71d"
+      }
+    }
+  }
+}

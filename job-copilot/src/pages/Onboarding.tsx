@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, CheckCircle, FileText, Zap, ChevronRight, AlertCircle, Download } from 'lucide-react'
+import { Upload, CheckCircle, FileText, Zap, ChevronRight, AlertCircle, Download, Globe } from 'lucide-react'
 import { useCV } from '../context/CVContext'
+import CVTranslationPreview, { TranslatedCV } from '../components/CVTranslationPreview'
 
-const API = 'http://localhost:3002'
+const API = ''
 
 const STEPS = ['Upload CV', 'Analyse IA', 'Profil', "C'est parti !"]
 
@@ -17,17 +18,19 @@ const ANALYSIS_STEPS = [
 ]
 
 interface ParsedCV {
+  rawText?: string
   name: string
   email: string
   phone: string
   skills: string[]
-  experience: { title: string; company: string; period: string }[]
+  experience: { title: string; company: string; period: string; description: string }[]
   education: { degree: string; school: string; year: string }[]
   languages: string[]
   atsScore: number
   atsKeywordsFound: string[]
   atsMissing: string[]
   yearsExperience: number
+  sector?: string
 }
 
 export default function Onboarding() {
@@ -41,6 +44,10 @@ export default function Onboarding() {
   const [visibleSkills, setVisibleSkills] = useState<string[]>([])
   const [atsScore, setAtsScore] = useState(0)
   const [downloadingDocx, setDownloadingDocx] = useState(false)
+  const [translating, setTranslating] = useState(false)
+  const [translated, setTranslated] = useState<TranslatedCV | null>(null)
+  const [downloadingTranslated, setDownloadingTranslated] = useState(false)
+  const [translateError, setTranslateError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
@@ -60,6 +67,52 @@ export default function Onboarding() {
       alert('Impossible de générer le CV Word. Vérifiez que le backend est lancé.')
     } finally {
       setDownloadingDocx(false)
+    }
+  }
+
+  async function translateCVToEnglish() {
+    if (!parsed) return
+    setTranslating(true)
+    setTranslateError('')
+    try {
+      const stored = JSON.parse(localStorage.getItem('jobcopilot_cv') || '{}')
+      const rawText = stored?.cv?.rawText || parsed?.rawText || ''
+      const res = await fetch(`${API}/api/cv/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText, parsedData: parsed }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erreur traduction')
+      setTranslated(data.translated)
+    } catch (err: any) {
+      setTranslateError(err.message || 'Impossible de traduire le CV.')
+    } finally {
+      setTranslating(false)
+    }
+  }
+
+  async function downloadTranslatedDocx() {
+    if (!translated) return
+    setDownloadingTranslated(true)
+    try {
+      const res = await fetch(`${API}/api/cv/generate-docx-translated`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(translated),
+      })
+      if (!res.ok) throw new Error('Erreur génération')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV_EN_${translated.name?.replace(/\s+/g, '_') || 'CV'}.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Impossible de générer le CV Word.')
+    } finally {
+      setDownloadingTranslated(false)
     }
   }
 
@@ -136,7 +189,7 @@ export default function Onboarding() {
         email: 'thomas.martin@email.com',
         phone: '+33 6 12 34 56 78',
         skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'Git', 'REST API', 'Tailwind'],
-        experience: [{ title: 'Développeur React Senior', company: 'Startup Fintech', period: '2022 - présent' }],
+        experience: [{ title: 'Développeur React Senior', company: 'Startup Fintech', period: '2022 - présent', description: '' }],
         education: [{ degree: 'Diplôme Ingénieur', school: 'École Centrale Paris', year: '2021' }],
         languages: ['Français', 'Anglais'],
         atsScore: 78,
@@ -150,6 +203,15 @@ export default function Onboarding() {
   }
 
   return (
+    <>
+    {translated && (
+      <CVTranslationPreview
+        translated={translated}
+        onClose={() => setTranslated(null)}
+        onDownload={downloadTranslatedDocx}
+        downloading={downloadingTranslated}
+      />
+    )}
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white flex flex-col items-center justify-center p-6">
       <div className="flex items-center gap-2 font-bold text-primary text-xl mb-10">
         <Zap size={24} />
@@ -350,6 +412,24 @@ export default function Onboarding() {
             <button onClick={() => setStep(2)} className="btn-primary w-full flex items-center justify-center gap-2">
               Continuer <ChevronRight size={16} />
             </button>
+
+            {/* Translate button */}
+            {translateError && (
+              <p className="text-xs text-red-500 text-center mt-1">{translateError}</p>
+            )}
+            <button
+              onClick={translateCVToEnglish}
+              disabled={translating}
+              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-green-200 bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors disabled:opacity-60"
+            >
+              {translating ? (
+                <span className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Globe size={16} />
+              )}
+              {translating ? 'Traduction en cours…' : 'Traduire mon CV en anglais'}
+            </button>
+
             <button
               onClick={downloadCVDocx}
               disabled={downloadingDocx}
@@ -426,5 +506,6 @@ export default function Onboarding() {
         )}
       </div>
     </div>
+    </>
   )
 }

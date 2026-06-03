@@ -8,3 +8,5 @@ backend/node_modules/
 backend/dist/
 *.log
 .DS_Store
+
+.vercel

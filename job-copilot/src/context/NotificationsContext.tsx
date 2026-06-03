@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 
-const API = 'http://localhost:3002'
+const API = ''
 
 export interface AppNotification {
   id: string

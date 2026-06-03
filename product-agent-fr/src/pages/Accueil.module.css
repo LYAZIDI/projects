@@ -1,0 +1,347 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.15), transparent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(10,10,15,0.9);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.logoIcon {
+  font-size: 1.4rem;
+}
+
+.logoFr {
+  color: var(--accent2);
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent2);
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3);
+  padding: 4px 12px;
+  border-radius: 100px;
+}
+
+.main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.heroTag {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  margin-bottom: 20px;
+}
+
+.heroTitle {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 20px;
+}
+
+.heroAccent {
+  background: linear-gradient(135deg, var(--accent2), #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSub {
+  font-size: 1rem;
+  color: var(--text2);
+  line-height: 1.7;
+}
+
+.modeSwitch {
+  display: flex;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+.modeBtn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: calc(var(--radius) - 4px);
+  background: transparent;
+  color: var(--text2);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.modeBtnActive {
+  background: var(--bg3);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  margin-bottom: 40px;
+}
+
+.dropzone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 60px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg3);
+  position: relative;
+  overflow: hidden;
+}
+
+.dropzone:hover {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.05);
+}
+
+.dropzoneDragging {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.1);
+  transform: scale(1.01);
+}
+
+.dropzoneHasImage {
+  padding: 0;
+  border-style: solid;
+}
+
+.dropContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dropIcon {
+  font-size: 3rem;
+}
+
+.dropText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dropText strong {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dropText span {
+  font-size: 0.875rem;
+  color: var(--text2);
+}
+
+.dropHint {
+  font-size: 0.75rem;
+  color: var(--text3);
+}
+
+.imagePreviewWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.imagePreview {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  display: block;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.imagePreviewWrapper:hover .imageOverlay {
+  opacity: 1;
+}
+
+.imageOverlay span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+}
+
+.imageName {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--green);
+  font-weight: 500;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text2);
+}
+
+.input, .textarea, .select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+  outline: none;
+  width: 100%;
+}
+
+.input:focus, .textarea:focus, .select:focus {
+  border-color: var(--accent);
+}
+
+.input::placeholder, .textarea::placeholder {
+  color: var(--text3);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.select {
+  cursor: pointer;
+}
+
+.select option {
+  background: var(--bg3);
+}
+
+.submitBtn {
+  margin-top: 28px;
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--accent2);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px var(--accent-glow);
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat {
+  text-align: center;
+  padding: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.statNum {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent2);
+  letter-spacing: -0.02em;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--text2);
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .header { padding: 16px; }
+  .badge { display: none; }
+  .row { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { padding: 14px 8px; }
+  .statNum { font-size: 1.4rem; }
+}

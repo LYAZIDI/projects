@@ -1,0 +1,31 @@
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+*.env
+backend/.env
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-secret.yml
+
+# ── Java / Maven ──────────────────────────────────────────────────────────────
+backend/target/
+*.class
+*.jar
+*.war
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+workflow-designer/node_modules/
+workflow-designer/dist/
+scripts/node_modules/
+scripts/package-lock.json
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log

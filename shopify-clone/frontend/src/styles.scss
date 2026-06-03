@@ -1,0 +1,204 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Leather brand palette */
+  --black:        #0D0D0D;
+  --charcoal:     #1A1A1A;
+  --dark:         #2C2C2C;
+  --gold:         #C9A84C;
+  --gold-light:   #E2C97E;
+  --gold-dark:    #8B6914;
+  --cream:        #F5F0E8;
+  --warm-white:   #FAF7F2;
+  --tan:          #C49A6C;
+  --brown:        #6B3F2A;
+  --burgundy:     #7D1F2E;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-light:   #9A9A9A;
+  --border:       #E0D9CE;
+  --border-dark:  #3A3A3A;
+  --surface:      #FAF7F2;
+  --white:        #FFFFFF;
+
+  /* Angular Material overrides */
+  --primary:      #1A1A1A;
+  --accent:       #C9A84C;
+  --warn:         #7D1F2E;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--text-primary);
+  background-color: var(--warm-white);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.02em;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--black);
+}
+
+h1 { font-size: 42px; line-height: 1.1; }
+h2 { font-size: 30px; line-height: 1.2; }
+h3 { font-size: 22px; }
+
+p { line-height: 1.7; color: var(--text-secondary); }
+
+a {
+  color: var(--gold-dark);
+  text-decoration: none;
+  transition: color 0.2s;
+  &:hover { color: var(--gold); }
+}
+
+/* ── Layout ── */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 32px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Gold divider ── */
+.gold-divider {
+  width: 48px;
+  height: 2px;
+  background: var(--gold);
+  margin: 16px 0;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  background: var(--black);
+  color: var(--cream);
+  border: 1px solid var(--black);
+  padding: 14px 36px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: var(--charcoal);
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--black);
+  border: 1px solid var(--black);
+  padding: 13px 35px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: var(--black);
+    color: var(--cream);
+  }
+}
+
+/* ── Angular Material overrides ── */
+.mat-mdc-raised-button.mat-primary {
+  background-color: var(--black) !important;
+  color: var(--cream) !important;
+  border-radius: 0 !important;
+  letter-spacing: 0.15em;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  transition: background-color 0.3s, border 0.3s;
+
+  &:hover {
+    background-color: var(--charcoal) !important;
+  }
+}
+
+.mat-mdc-raised-button.mat-accent {
+  background-color: var(--gold) !important;
+  color: var(--black) !important;
+  border-radius: 0 !important;
+}
+
+.mat-mdc-outlined-button {
+  border-radius: 0 !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.mat-mdc-button {
+  letter-spacing: 0.05em;
+  font-size: 12px;
+}
+
+.mat-toolbar.mat-primary {
+  background: var(--black) !important;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+.mat-mdc-form-field-outline {
+  border-radius: 0 !important;
+}
+
+/* ── Status badges ── */
+.status-badge {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--tan); }
+::-webkit-scrollbar-thumb:hover { background: var(--brown); }
+
+/* ── Selection ── */
+::selection {
+  background: var(--gold);
+  color: var(--black);
+}

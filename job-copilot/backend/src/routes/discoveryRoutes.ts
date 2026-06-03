@@ -3,64 +3,69 @@ import { triggerManualDiscovery, getAllStoredJobs, getAPIStatus } from '../servi
 import { notifyHighMatch } from '../services/notificationService'
 import { loadProfile } from '../services/profileService'
 import { scoreJob } from '../services/matchingEngine'
-import fs from 'fs'
-import path from 'path'
+import pool from '../db/pgClient'
 
 const router = Router()
 
-// POST /api/discovery/run — déclenche une recherche d'offres réelles
+// POST /api/discovery/run
 router.post('/run', async (req, res) => {
-  const profile = loadProfile()
-  const skills = (req.body.skills ?? profile?.cv.skills ?? []) as string[]
-  const result = await triggerManualDiscovery(skills)
+  try {
+    const profile = await loadProfile()
+    const skills = (req.body.skills ?? profile?.cv.skills ?? []) as string[]
+    const result = await triggerManualDiscovery(skills)
 
-  // Notify high matches if profile loaded
-  if (profile) {
-    const jobs = getAllStoredJobs()
-    jobs
-      .map(j => scoreJob(j, profile))
-      .filter(j => j.matchScore >= 80)
-      .slice(0, 3)
-      .forEach(j => notifyHighMatch(j.title, j.company, j.matchScore, j.id))
+    if (profile) {
+      const jobs = await getAllStoredJobs()
+      jobs
+        .map(j => scoreJob(j, profile))
+        .filter(j => j.matchScore >= 80)
+        .slice(0, 3)
+        .forEach(j => notifyHighMatch(j.title, j.company, j.matchScore, j.id))
+    }
+
+    res.json(result)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
   }
-
-  res.json(result)
 })
 
-// GET /api/discovery/status — état des APIs et jobs stockés
-router.get('/status', (_req, res) => {
-  const jobs = getAllStoredJobs()
-  const apiStatus = getAPIStatus()
-  const bySource = jobs.reduce<Record<string, number>>((acc, j) => {
-    acc[j.source] = (acc[j.source] ?? 0) + 1
-    return acc
-  }, {})
-  const lastFetch = jobs.length > 0
-    ? jobs.sort((a, b) => new Date(b.fetchedAt).getTime() - new Date(a.fetchedAt).getTime())[0].fetchedAt
-    : null
+// GET /api/discovery/status
+router.get('/status', async (_req, res) => {
+  try {
+    const jobs = await getAllStoredJobs()
+    const apiStatus = getAPIStatus()
+    const bySource = jobs.reduce<Record<string, number>>((acc, j) => {
+      const src = (j as any).source ?? 'unknown'
+      acc[src] = (acc[src] ?? 0) + 1
+      return acc
+    }, {})
 
-  res.json({
-    total: jobs.length,
-    bySource,
-    lastFetch,
-    apis: {
-      franceTravail: { active: apiStatus.franceTravail, label: 'France Travail (Pôle Emploi)', url: 'https://francetravail.io/data/api/offres-emploi' },
-      adzuna: { active: apiStatus.adzuna, label: 'Adzuna (Indeed, Monster...)', url: 'https://developer.adzuna.com/' },
-    },
-    configured: apiStatus.franceTravail || apiStatus.adzuna,
-  })
+    res.json({
+      total: jobs.length,
+      bySource,
+      apis: {
+        franceTravail: { active: apiStatus.franceTravail, label: 'France Travail (Pôle Emploi)' },
+        adzuna: { active: apiStatus.adzuna, label: 'Adzuna (Indeed, Monster...)' },
+      },
+      configured: apiStatus.franceTravail || apiStatus.adzuna,
+    })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
-// POST /api/discovery/clear — vide la base et relance depuis les vraies APIs
+// POST /api/discovery/clear — vide la table jobs et relance
 router.post('/clear', async (req, res) => {
-  const jobsFile = path.join(process.cwd(), 'data', 'jobs.json')
-  fs.writeFileSync(jobsFile, '[]', 'utf-8')
-  console.log('[Discovery] Base vidée')
-
-  const profile = loadProfile()
-  const skills = (req.body?.skills ?? profile?.cv.skills ?? process.env.INITIAL_SKILLS?.split(',') ?? []) as string[]
-  const result = await triggerManualDiscovery(skills.map(s => s.trim()))
-  res.json({ cleared: true, ...result })
+  try {
+    await pool.query('DELETE FROM jobs')
+    console.log('[Discovery] Table jobs vidée')
+    const profile = await loadProfile()
+    const skills = (req.body?.skills ?? profile?.cv.skills ?? process.env.INITIAL_SKILLS?.split(',') ?? []) as string[]
+    const result = await triggerManualDiscovery(skills.map((s: string) => s.trim()))
+    res.json({ cleared: true, ...result })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 export default router

@@ -34,5 +34,50 @@
     "link": "/jobs",
     "read": false,
     "createdAt": "2026-03-28T21:20:45.513Z"
+  },
+  {
+    "id": "aed9fb95-2377-4f9c-9099-501126c32922",
+    "type": "new_job",
+    "title": "2 nouvelles offres trouvées",
+    "body": "De nouvelles offres correspondent à votre profil. Consultez-les maintenant.",
+    "link": "/jobs",
+    "read": false,
+    "createdAt": "2026-03-31T17:20:26.298Z"
+  },
+  {
+    "id": "08f99ab1-48f8-4612-b4fd-9d295dba0cb0",
+    "type": "ats_tip",
+    "title": "Conseil ATS",
+    "body": "Votre score ATS est 38/100. Ajoutez ces mots-clés : responsabilité, résultat, performance.",
+    "link": "/ats-optimizer",
+    "read": false,
+    "createdAt": "2026-03-31T18:04:48.704Z"
+  },
+  {
+    "id": "b6db1702-4c21-4de5-8d50-2d521ef29cd7",
+    "type": "ats_tip",
+    "title": "Conseil ATS",
+    "body": "Votre score ATS est 38/100. Ajoutez ces mots-clés : responsabilité, résultat, performance.",
+    "link": "/ats-optimizer",
+    "read": false,
+    "createdAt": "2026-03-31T18:18:14.552Z"
+  },
+  {
+    "id": "47d54093-bfa3-4b6d-89ea-215ddbb85eee",
+    "type": "new_job",
+    "title": "28 nouvelles offres trouvées",
+    "body": "De nouvelles offres correspondent à votre profil. Consultez-les maintenant.",
+    "link": "/jobs",
+    "read": false,
+    "createdAt": "2026-06-02T12:29:22.761Z"
+  },
+  {
+    "id": "fe3a39fb-32fe-476f-8623-d9a52833d237",
+    "type": "new_job",
+    "title": "2 nouvelles offres trouvées",
+    "body": "De nouvelles offres correspondent à votre profil. Consultez-les maintenant.",
+    "link": "/jobs",
+    "read": false,
+    "createdAt": "2026-06-03T11:07:55.577Z"
   }
 ]

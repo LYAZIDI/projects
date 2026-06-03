@@ -1,0 +1,29 @@
+{
+  "name": "erp",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "vercel-build": "npm run vercel-build --workspace=backend && npm run vercel-build --workspace=frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "express": "^4.21.0",
+    "express-async-errors": "^3.1.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  }
+}

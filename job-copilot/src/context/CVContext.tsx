@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 export interface ParsedCV {
+  rawText?: string
   name: string
   email: string
   phone: string
@@ -38,7 +39,7 @@ export function CVProvider({ children }: { children: ReactNode }) {
         setRawCV(storedCV)
         setFileName(storedFile)
         // Sync to server (non-blocking) — server may have lost profile on restart
-        fetch('http://localhost:3002/api/cv/profile', {
+        fetch('/api/cv/profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cv: storedCV }),

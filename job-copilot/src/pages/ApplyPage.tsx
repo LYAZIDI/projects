@@ -8,7 +8,7 @@ import {
   Copy, CheckCircle, Wand2, ArrowLeft, Sparkles, ChevronDown, AlertTriangle
 } from 'lucide-react'
 
-const API = 'http://localhost:3002'
+const API = ''
 
 // ─── Typewriter hook ──────────────────────────────────────────────────────────
 function useTypewriter(text: string, active: boolean, speed = 14) {
