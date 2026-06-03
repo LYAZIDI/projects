@@ -4,13 +4,13 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "build:android": "npx eas-cli build --platform android",
     "build:ios": "npx eas-cli build --platform ios",
     "build:apk": "npx eas-cli build --platform android --profile preview",
-    "postinstall": "node scripts/patch-expo-sqlite.js",
-    "eas-build-post-install": "node scripts/patch-expo-sqlite.js"
+    "postinstall": "node scripts/patch-eas-build.js",
+    "eas-build-post-install": "node scripts/patch-eas-build.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
