@@ -30,7 +30,29 @@ module.exports = {};
   console.log('[patch] expo-sqlite: index.js remplacé par stub CJS')
 }
 
-// ─── Patch 2 : expo-modules-core AGP 8.x ─────────────────────────────────────
+// ─── Patch 2 : expo-print — compileSdkVersion manquant ───────────────────────
+
+const expoPrintGradle = path.join(__dirname, '..', 'node_modules', 'expo-print', 'android', 'build.gradle')
+
+if (!fs.existsSync(expoPrintGradle)) {
+  console.log('[patch] expo-print/android/build.gradle non trouvé, patch ignoré.')
+} else {
+  let content = fs.readFileSync(expoPrintGradle, 'utf8')
+  if (!content.includes('// PATCHED: compileSdkVersion')) {
+    // Injecte compileSdkVersion directement dans le bloc android{},
+    // avant le namespace — fonctionne que expoProvidesDefaultConfig soit true ou false.
+    content = content.replace(
+      'namespace "expo.modules.print"',
+      '// PATCHED: compileSdkVersion\n  compileSdkVersion safeExtGet("compileSdkVersion", 34)\n  namespace "expo.modules.print"'
+    )
+    fs.writeFileSync(expoPrintGradle, content, 'utf8')
+    console.log('[patch] expo-print: compileSdkVersion 34 injecté dans android block')
+  } else {
+    console.log('[patch] expo-print: déjà patché.')
+  }
+}
+
+// ─── Patch 3 : expo-modules-core AGP 8.x ─────────────────────────────────────
 
 const gradlePluginPath = path.join(
   __dirname, '..', 'node_modules', 'expo-modules-core',

@@ -17,7 +17,6 @@
       },
       "distribution": "internal",
       "env": {
-        "npm_config_ignore_scripts": "true",
         "GRADLE_OPTS": "-Dorg.gradle.daemon=false -Dorg.gradle.logging.level=info"
       }
     },

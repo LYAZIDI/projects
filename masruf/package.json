@@ -9,8 +9,8 @@
     "build:android": "npx eas-cli build --platform android",
     "build:ios": "npx eas-cli build --platform ios",
     "build:apk": "npx eas-cli build --platform android --profile preview",
-    "postinstall": "node scripts/patch-eas-build.js",
-    "eas-build-post-install": "node scripts/patch-eas-build.js"
+    "postinstall": "patch-package && node scripts/patch-eas-build.js",
+    "eas-build-post-install": "patch-package && node scripts/patch-eas-build.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -18,9 +18,9 @@
     "date-fns": "^3.6.0",
     "expo": "~51.0.0",
     "expo-constants": "~16.0.2",
+    "expo-file-system": "~17.0.0",
     "expo-font": "~12.0.10",
     "expo-linking": "~6.3.1",
-    "expo-file-system": "~17.0.0",
     "expo-notifications": "~0.28.0",
     "expo-print": "~12.8.0",
     "expo-router": "~3.5.0",
@@ -38,6 +38,7 @@
   "devDependencies": {
     "@types/react": "~18.2.79",
     "babel-preset-expo": "~11.0.0",
+    "patch-package": "^8.0.1",
     "typescript": "^5.3.3"
   }
 }

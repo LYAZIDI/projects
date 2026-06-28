@@ -1,0 +1,21 @@
+diff --git a/node_modules/expo-print/android/build.gradle b/node_modules/expo-print/android/build.gradle
+index 77cd137..837eb62 100644
+--- a/node_modules/expo-print/android/build.gradle
++++ b/node_modules/expo-print/android/build.gradle
+@@ -13,6 +13,7 @@ if (expoModulesCorePlugin.exists()) {
+   if (safeExtGet("expoProvidesDefaultConfig", false)) {
+     useExpoPublishing()
+     useCoreDependencies()
++    useDefaultAndroidSdkVersions()
+   }
+ }
+ 
+@@ -91,6 +92,8 @@ android {
+     }
+   }
+ 
++  // PATCHED: compileSdkVersion
++  compileSdkVersion safeExtGet("compileSdkVersion", 34)
+   namespace "expo.modules.print"
+   defaultConfig {
+     versionCode 27

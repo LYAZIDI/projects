@@ -36,7 +36,8 @@
       ]
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "./plugins/fixExpoPrint"
     ],
     "experiments": {},
     "extra": {
