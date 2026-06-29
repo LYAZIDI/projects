@@ -1,47 +1,28 @@
-const { withDangerousMod } = require('@expo/config-plugins')
-const fs = require('fs')
-const path = require('path')
+const { withProjectBuildGradle } = require('@expo/config-plugins')
 
+// expo-print@12.8.x ne définit pas compileSdkVersion quand expoProvidesDefaultConfig=true.
+// On injecte un bloc subprojects dans android/build.gradle pour forcer compileSdkVersion=34
+// sur tous les modules android library qui ne l'ont pas défini.
 module.exports = function fixExpoPrint(config) {
-  return withDangerousMod(config, [
-    'android',
-    (config) => {
-      const expoPrintGradle = path.join(
-        config.modRequest.projectRoot,
-        'node_modules',
-        'expo-print',
-        'android',
-        'build.gradle'
-      )
+  return withProjectBuildGradle(config, (config) => {
+    if (config.modResults.language !== 'groovy') return config
 
-      if (!fs.existsSync(expoPrintGradle)) {
-        console.log('[fixExpoPrint] build.gradle non trouvé, patch ignoré.')
-        return config
-      }
-
-      let content = fs.readFileSync(expoPrintGradle, 'utf8')
-
-      if (content.includes('// PATCHED: compileSdkVersion')) {
-        console.log('[fixExpoPrint] déjà patché.')
-        return config
-      }
-
-      // expo-print@12.8.x oublie d'appeler useDefaultAndroidSdkVersions() quand
-      // expoProvidesDefaultConfig=true, donc compileSdkVersion n'est jamais défini.
-      // On l'injecte directement avant le namespace pour corriger le build AGP 8.x.
-      if (!content.includes('namespace "expo.modules.print"')) {
-        console.log('[fixExpoPrint] namespace non trouvé, patch ignoré.')
-        return config
-      }
-
-      content = content.replace(
-        'namespace "expo.modules.print"',
-        '// PATCHED: compileSdkVersion\n  compileSdkVersion safeExtGet("compileSdkVersion", 34)\n  namespace "expo.modules.print"'
-      )
-      fs.writeFileSync(expoPrintGradle, content, 'utf8')
-      console.log('[fixExpoPrint] compileSdkVersion 34 injecté dans expo-print/android/build.gradle')
-
-      return config
+    const fix = `
+// Fix: force compileSdkVersion on subprojects missing it (expo-print AGP 8.x bug)
+subprojects {
+    afterEvaluate {
+        if (it.plugins.hasPlugin('com.android.library')) {
+            if (!it.android.compileSdkVersion) {
+                it.android.compileSdkVersion = 34
+            }
+        }
     }
-  ])
+}
+`
+    if (!config.modResults.contents.includes('// Fix: force compileSdkVersion')) {
+      config.modResults.contents += fix
+    }
+
+    return config
+  })
 }
