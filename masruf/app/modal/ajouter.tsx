@@ -85,20 +85,25 @@ export default function AjouterModal() {
       {etape === 'montant' ? (
         /* ─── Étape 1 : Montant ─────────────────────────────────── */
         <View style={styles.etapeMontant}>
-          <AmountInput
-            valeur={montant === '0' ? '' : montant}
-            onChange={setMontant}
-          />
-
-          {/* Sélection rapide catégorie */}
-          <View style={styles.categorieSection}>
-            <Text style={styles.sectionLabel}>Catégorie</Text>
-            <CategoryGrid
-              categories={categories}
-              selectionne={categorieId}
-              onSelect={setCategorieId}
+          <ScrollView
+            contentContainerStyle={styles.etapeMontantScroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <AmountInput
+              valeur={montant === '0' ? '' : montant}
+              onChange={setMontant}
             />
-          </View>
+
+            <View style={styles.categorieSection}>
+              <Text style={styles.sectionLabel}>Catégorie</Text>
+              <CategoryGrid
+                categories={categories}
+                selectionne={categorieId}
+                onSelect={setCategorieId}
+              />
+            </View>
+          </ScrollView>
 
           <TouchableOpacity
             style={[styles.continuerBtn, (!montantNum || !categorieId) && styles.continuerBtnDesactive]}
@@ -266,10 +271,14 @@ const styles = StyleSheet.create({
   // Étape montant
   etapeMontant: {
     flex: 1,
-    padding: ESPACEMENTS.md,
-    gap: ESPACEMENTS.lg,
+    paddingHorizontal: ESPACEMENTS.md,
+    paddingBottom: ESPACEMENTS.md,
   },
-  categorieSection: { gap: ESPACEMENTS.sm },
+  etapeMontantScroll: {
+    gap: ESPACEMENTS.sm,
+    paddingBottom: ESPACEMENTS.sm,
+  },
+  categorieSection: { gap: ESPACEMENTS.xs },
   sectionLabel: {
     fontSize: POLICES.taille.sm,
     fontWeight: POLICES.poids.semibold,

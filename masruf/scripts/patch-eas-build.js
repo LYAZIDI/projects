@@ -2,57 +2,16 @@
 /**
  * Patches appliqués après npm install pour compatibilité EAS Build :
  *
- * 1. expo-sqlite : stub CJS pour Node.js 24 (index.js → stub, index.native.js → réel)
- * 2. expo-modules-core : fix AGP 8.x — components.release → components.findByName('release')
+ * 1. expo-modules-core : fix AGP 8.x — components.release → components.findByName('release')
+ * 2. compileSdkVersion AGP 8.x (expo-print, expo-sharing, etc.)
+ *
+ * Note : le patch expo-sqlite (stub CJS Node.js 24) a été supprimé car expo-sqlite@16
+ * utilise un exports map explicite — le suffix .native.js n'est pas pris en compte.
  */
 const fs = require('fs')
 const path = require('path')
 
-// ─── Patch 1 : expo-sqlite ────────────────────────────────────────────────────
-
-const sqliteBuildDir = path.join(__dirname, '..', 'node_modules', 'expo-sqlite', 'build')
-const sqliteIndexPath = path.join(sqliteBuildDir, 'index.js')
-const sqliteNativePath = path.join(sqliteBuildDir, 'index.native.js')
-
-if (!fs.existsSync(sqliteBuildDir)) {
-  console.log('[patch] expo-sqlite/build non trouvé, patch ignoré.')
-} else {
-  const originalContent = fs.readFileSync(sqliteIndexPath, 'utf8')
-  if (!originalContent.includes('Stub CJS')) {
-    fs.writeFileSync(sqliteNativePath, originalContent, 'utf8')
-    console.log('[patch] expo-sqlite: index.native.js créé (implémentation réelle pour Metro)')
-  }
-  const stub = `'use strict';
-// Stub CJS pour Node.js 24 — Metro utilise index.native.js
-module.exports = {};
-`
-  fs.writeFileSync(sqliteIndexPath, stub, 'utf8')
-  console.log('[patch] expo-sqlite: index.js remplacé par stub CJS')
-}
-
-// ─── Patch 2 : expo-print — compileSdkVersion manquant ───────────────────────
-
-const expoPrintGradle = path.join(__dirname, '..', 'node_modules', 'expo-print', 'android', 'build.gradle')
-
-if (!fs.existsSync(expoPrintGradle)) {
-  console.log('[patch] expo-print/android/build.gradle non trouvé, patch ignoré.')
-} else {
-  let content = fs.readFileSync(expoPrintGradle, 'utf8')
-  if (!content.includes('// PATCHED: compileSdkVersion')) {
-    // Injecte compileSdkVersion directement dans le bloc android{},
-    // avant le namespace — fonctionne que expoProvidesDefaultConfig soit true ou false.
-    content = content.replace(
-      'namespace "expo.modules.print"',
-      '// PATCHED: compileSdkVersion\n  compileSdkVersion safeExtGet("compileSdkVersion", 34)\n  namespace "expo.modules.print"'
-    )
-    fs.writeFileSync(expoPrintGradle, content, 'utf8')
-    console.log('[patch] expo-print: compileSdkVersion 34 injecté dans android block')
-  } else {
-    console.log('[patch] expo-print: déjà patché.')
-  }
-}
-
-// ─── Patch 3 : expo-modules-core AGP 8.x ─────────────────────────────────────
+// ─── Patch 1 : expo-modules-core AGP 8.x ─────────────────────────────────────
 
 const gradlePluginPath = path.join(
   __dirname, '..', 'node_modules', 'expo-modules-core',
@@ -116,5 +75,48 @@ if (!fs.existsSync(gradlePluginPath)) {
     }
   } else {
     console.log('[patch] expo-modules-core: déjà patché ou non nécessaire.')
+  }
+}
+
+// ─── Patch 3 : compileSdkVersion AGP 8.x (expo-print, expo-sharing, etc.) ────
+// Certains modules Expo SDK 51 mettent compileSdkVersion dans un bloc
+// conditionnel ignoré par AGP 8.x. On le déplace au niveau supérieur.
+
+const OLD_COMPILE_BLOCK = `android {
+  // Remove this if and it's contents, when support for SDK49 is dropped
+  if (!safeExtGet("expoProvidesDefaultConfig", false)) {
+    compileSdkVersion safeExtGet("compileSdkVersion", 34)
+
+    defaultConfig {`
+
+const NEW_COMPILE_BLOCK = `android {
+  compileSdkVersion safeExtGet("compileSdkVersion", 34)
+  // Remove this if and it's contents, when support for SDK49 is dropped
+  if (!safeExtGet("expoProvidesDefaultConfig", false)) {
+    defaultConfig {`
+
+const modulesToPatch = ['expo-print', 'expo-sharing']
+
+for (const mod of modulesToPatch) {
+  const gradlePath = path.join(__dirname, '..', 'node_modules', mod, 'android', 'build.gradle')
+
+  if (!fs.existsSync(gradlePath)) {
+    console.log(`[patch] ${mod}/android/build.gradle non trouvé, patch ignoré.`)
+    continue
+  }
+
+  let content = fs.readFileSync(gradlePath, 'utf8')
+
+  if (content.includes(NEW_COMPILE_BLOCK)) {
+    console.log(`[patch] ${mod}: déjà patché.`)
+    continue
+  }
+
+  if (content.includes(OLD_COMPILE_BLOCK)) {
+    content = content.replace(OLD_COMPILE_BLOCK, NEW_COMPILE_BLOCK)
+    fs.writeFileSync(gradlePath, content, 'utf8')
+    console.log(`[patch] ${mod}: compileSdkVersion déplacé hors du bloc conditionnel`)
+  } else {
+    console.log(`[patch] ${mod}: structure inattendue, patch non appliqué.`)
   }
 }

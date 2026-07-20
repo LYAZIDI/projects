@@ -9,7 +9,12 @@ interface AmountInputProps {
   autoFocus?: boolean
 }
 
-const CHIFFRES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫']
+const RANGEES = [
+  ['1', '2', '3'],
+  ['4', '5', '6'],
+  ['7', '8', '9'],
+  ['.', '0', '⌫'],
+]
 
 export function AmountInput({ valeur, onChange, autoFocus = false }: AmountInputProps) {
   const handleTouche = (c: string) => {
@@ -17,21 +22,16 @@ export function AmountInput({ valeur, onChange, autoFocus = false }: AmountInput
       onChange(valeur.slice(0, -1))
       return
     }
-    // Empêcher deux points décimaux
     if (c === '.' && valeur.includes('.')) return
-    // Limiter à 2 décimales
     const parts = valeur.split('.')
     if (parts[1] && parts[1].length >= 2) return
-    // Limiter à 6 chiffres avant la virgule
     if (!valeur.includes('.') && valeur.replace(/^0/, '').length >= 6 && c !== '.') return
-
     if (valeur === '0' && c !== '.') onChange(c)
     else onChange(valeur + c)
   }
 
   return (
     <View style={styles.container}>
-      {/* Affichage montant */}
       <View style={styles.affichage}>
         <Text style={styles.montant} numberOfLines={1} adjustsFontSizeToFit>
           {valeur || '0'}
@@ -39,19 +39,26 @@ export function AmountInput({ valeur, onChange, autoFocus = false }: AmountInput
         <Text style={styles.devise}>DH</Text>
       </View>
 
-      {/* Clavier numérique */}
       <View style={styles.clavier}>
-        {CHIFFRES.map((c) => (
-          <TouchableOpacity
-            key={c}
-            style={[styles.touche, c === '.' && styles.touchePoint, c === '⌫' && styles.toucheEffacer]}
-            onPress={() => handleTouche(c)}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.toucheTexte, c === '⌫' && styles.toucheEffacerTexte]}>
-              {c}
-            </Text>
-          </TouchableOpacity>
+        {RANGEES.map((rangee, ri) => (
+          <View key={ri} style={styles.rangee}>
+            {rangee.map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.touche,
+                  c === '.' && styles.touchePoint,
+                  c === '⌫' && styles.toucheEffacer,
+                ]}
+                onPress={() => handleTouche(c)}
+                activeOpacity={0.6}
+              >
+                <Text style={[styles.toucheTexte, c === '⌫' && styles.toucheEffacerTexte]}>
+                  {c}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         ))}
       </View>
     </View>
@@ -66,9 +73,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingVertical: ESPACEMENTS.lg,
+    paddingVertical: ESPACEMENTS.md,
     gap: ESPACEMENTS.sm,
-    minHeight: 80,
+    minHeight: 70,
   },
   montant: {
     fontSize: 52,
@@ -83,16 +90,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   clavier: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     width: '100%',
-    gap: 10,
     paddingHorizontal: ESPACEMENTS.md,
+    gap: 8,
+  },
+  rangee: {
+    flexDirection: 'row',
+    gap: 8,
   },
   touche: {
-    width: '30%',
     flex: 1,
-    aspectRatio: 1.8,
+    height: 46,
     backgroundColor: COULEURS.card,
     borderRadius: RAYONS.md,
     alignItems: 'center',

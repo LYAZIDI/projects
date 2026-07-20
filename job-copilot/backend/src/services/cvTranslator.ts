@@ -14,7 +14,7 @@ export interface TranslatedCV {
   detectedSourceLanguage: string
 }
 
-export async function translateCV(rawText: string, parsedData: {
+export async function translateCV(rawText: string | undefined, parsedData: {
   name: string
   email: string
   phone: string
@@ -23,12 +23,13 @@ export async function translateCV(rawText: string, parsedData: {
   education: { degree: string; school: string; year: string }[]
   languages: string[]
 }): Promise<TranslatedCV> {
+  const rawSection = rawText
+    ? `Here is the raw CV text:\n<cv_text>\n${rawText.slice(0, 4000)}\n</cv_text>\n`
+    : ''
+
   const prompt = `You are a professional CV translator and writer. Translate the following CV from its original language to English.
 
-Here is the raw CV text:
-<cv_text>
-${rawText.slice(0, 4000)}
-</cv_text>
+${rawSection}
 
 Here is the structured data already extracted from the CV:
 - Name: ${parsedData.name}

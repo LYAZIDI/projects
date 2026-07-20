@@ -271,7 +271,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: ESPACEMENTS.xl,
     gap: ESPACEMENTS.sm,
-    background: 'linear-gradient(135deg, #1C1C30, #252540)',
   },
   totalLabel: {
     fontSize: POLICES.taille.sm,

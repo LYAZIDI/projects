@@ -158,7 +158,7 @@ router.post('/generate-docx-translated', async (req, res) => {
 router.post('/translate', async (req, res) => {
   try {
     const { rawText, parsedData } = req.body
-    if (!rawText || !parsedData) return res.status(400).json({ error: 'rawText et parsedData requis.' })
+    if (!parsedData) return res.status(400).json({ error: 'parsedData requis.' })
     if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY non configurée.' })
 
     const translated = await translateCV(rawText, parsedData)

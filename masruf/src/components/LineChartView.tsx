@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import Svg, { Polyline, Line, Text as SvgText, Defs, LinearGradient, Stop, Rect } from 'react-native-svg'
+import Svg, { Polyline, Line, Text as SvgText, Defs, LinearGradient, Stop, Rect, Circle } from 'react-native-svg'
 import { formatMAD, formatMoisAnnee } from '../utils/formatters'
 import { COULEURS, POLICES, ESPACEMENTS } from '../constants/theme'
 
@@ -72,7 +72,7 @@ export function LineChartView({ donnees, largeur = 320, hauteur = 150 }: LineCha
         {/* Points */}
         {sorted.map((d, i) => (
           <React.Fragment key={d.mois}>
-            <Svg.Circle
+            <Circle
               cx={xFor(i)} cy={yFor(d.total)}
               r={4} fill={COULEURS.accent}
             />

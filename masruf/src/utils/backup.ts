@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system'
+import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import { exporterDonnees, importerDonnees } from '../db/client'
 
@@ -71,7 +71,7 @@ export async function listerBackups(): Promise<Array<{ nom: string; uri: string;
 
   for (const nom of fichiers.filter(f => f.endsWith('.json'))) {
     const uri = BACKUP_DIR + nom
-    const info = await FileSystem.getInfoAsync(uri, { size: true })
+    const info = await FileSystem.getInfoAsync(uri)
     const taille = info.exists && 'size' in info
       ? `${Math.round((info.size ?? 0) / 1024)} Ko`
       : '—'
