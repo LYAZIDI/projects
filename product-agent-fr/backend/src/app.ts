@@ -12,12 +12,12 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }))
 app.use('/api/analyse', analyseRoutes)
 
 app.get('/api/health', (_req, res) => {
-  const key = process.env.GEMINI_API_KEY
+  const key = process.env.GROQ_API_KEY
   res.json({
     statut: 'ok',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    gemini_key: key ? `set (${key.length} chars)` : 'MISSING',
+    groq_key: key ? `set (${key.length} chars)` : 'MISSING',
   })
 })
 
