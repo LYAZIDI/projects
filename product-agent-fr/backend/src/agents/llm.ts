@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
 
 const TEXT_MODEL = 'llama-3.3-70b-versatile'
-const VISION_MODEL = 'llama-4-scout-17b-16e-instruct'
+const VISION_MODEL = 'qwen/qwen3.6-27b'
 
 const JSON_INSTRUCTION = '\n\nIMPORTANT : Réponds UNIQUEMENT avec du JSON valide. Pas de markdown, pas d\'explication, pas de bloc de code. Sois concis — chaque valeur textuelle doit faire moins de 80 mots.'
 
