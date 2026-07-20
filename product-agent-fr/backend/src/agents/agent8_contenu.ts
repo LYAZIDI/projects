@@ -1,4 +1,4 @@
-import { appelAgent } from './llm'
+import { appelAgent, safeArr } from './llm'
 import type { AnalyseProduit, AvatarClient, PlanContenu } from './types'
 
 const SYSTEME = `Tu es un créateur de contenu expert en TikTok, Instagram Reels et email marketing pour le marché français.
@@ -18,9 +18,9 @@ Bénéfice : ${produit.benefice_principal}
 Facteur WOW : ${produit.facteur_wow}
 Problème : ${produit.probleme_resolu}
 Avatar : ${avatar.prenom}, ${avatar.age.min}-${avatar.age.max} ans
-Réseaux : ${avatar.reseaux_sociaux.join(', ')}
-Points douleur : ${avatar.points_douleur.join(' | ')}
-Désirs : ${avatar.desirs.join(' | ')}
+Réseaux : ${safeArr(avatar.reseaux_sociaux).join(', ')}
+Points douleur : ${safeArr(avatar.points_douleur).join(' | ')}
+Désirs : ${safeArr(avatar.desirs).join(' | ')}
 Journée type : ${avatar.journee_type}
 
 Retourne un objet JSON avec ce schéma exact :

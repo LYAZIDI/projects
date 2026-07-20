@@ -16,11 +16,11 @@ Cible : ${produit.cible_principale}
 Prix recommandé : ${produit.fourchette_prix.recommande}€
 Score demande : ${marche.score_demande}/100
 Concurrence : ${marche.niveau_concurrence}
-Plateformes FR : ${marche.plateformes_fr_pertinentes.join(', ')}
+Plateformes FR : ${(0, llm_1.safeArr)(marche.plateformes_fr_pertinentes).join(', ')}
 Avatar : ${avatar.prenom}, ${avatar.age.min}-${avatar.age.max} ans, ${avatar.genre}
-Réseaux : ${avatar.reseaux_sociaux.join(', ')}
-Objections : ${avatar.objections_typiques.join(' | ')}
-Déclencheurs : ${avatar.declencheurs_achat.join(' | ')}
+Réseaux : ${(0, llm_1.safeArr)(avatar.reseaux_sociaux).join(', ')}
+Objections : ${(0, llm_1.safeArr)(avatar.objections_typiques).join(' | ')}
+Déclencheurs : ${(0, llm_1.safeArr)(avatar.declencheurs_achat).join(' | ')}
 
 Retourne un objet JSON avec ce schéma exact :
 {

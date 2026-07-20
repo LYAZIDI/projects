@@ -15,11 +15,11 @@ Facteur WOW : ${produit.facteur_wow}
 Bénéfice : ${produit.benefice_principal}
 Problème : ${produit.probleme_resolu}
 Avatar : ${avatar.prenom}, ${avatar.age.min}-${avatar.age.max} ans
-Points douleur : ${avatar.points_douleur.slice(0, 3).join(' | ')}
-Moteurs émotionnels : ${avatar.moteurs_emotionnels.join(', ')}
+Points douleur : ${(0, llm_1.safeArr)(avatar.points_douleur).slice(0, 3).join(' | ')}
+Moteurs émotionnels : ${(0, llm_1.safeArr)(avatar.moteurs_emotionnels).join(', ')}
 Prix : ${offre.prix_psychologique}€ (barré ${offre.prix_barre}€)
 CTA : ${offre.appel_a_action_principal}
-Déclencheurs urgence : ${offre.urgence_rarete.join(' | ')}
+Déclencheurs urgence : ${(0, llm_1.safeArr)(offre.urgence_rarete).join(' | ')}
 
 Retourne un objet JSON avec ce schéma exact :
 {

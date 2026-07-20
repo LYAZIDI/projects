@@ -1,4 +1,4 @@
-import { appelAgent } from './llm'
+import { appelAgent, safeArr } from './llm'
 import type {
   AnalyseProduit, AnalyseMarche, AvatarClient,
   StrategieMarketing, CreationOffre, ScoreMaster
@@ -34,12 +34,12 @@ Concurrence : ${marche.niveau_concurrence}
 Saturation : ${marche.risque_saturation}
 Tendance : ${marche.tendance}
 Fenêtre opportunité : ${marche.fenetre_opportunite}
-Barrières entrée : ${marche.barrieres_entree.join(', ')}
+Barrières entrée : ${safeArr(marche.barrieres_entree).join(', ')}
 
 === AVATAR ===
 Confiance dropshipping : ${avatar.confiance_dropshipping}
 Sensibilité prix : ${avatar.sensibilite_prix}
-Déclencheurs : ${avatar.declencheurs_achat.join(', ')}
+Déclencheurs : ${safeArr(avatar.declencheurs_achat).join(', ')}
 
 === OFFRE ===
 Prix psychologique : ${offre.prix_psychologique}€

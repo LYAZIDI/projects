@@ -1,4 +1,4 @@
-import { appelAgent } from './llm'
+import { appelAgent, safeArr } from './llm'
 import type { AnalyseProduit, AvatarClient, StrategieMarketing, CreationOffre } from './types'
 
 const SYSTEME = `Tu es un expert en conversion e-commerce et en psychologie de l'achat en France.
@@ -20,8 +20,8 @@ Prix recommandé : ${produit.fourchette_prix.recommande}€
 Fourchette : ${produit.fourchette_prix.min}€ – ${produit.fourchette_prix.max}€
 Sensibilité prix avatar : ${avatar.sensibilite_prix}
 Confiance dropshipping : ${avatar.confiance_dropshipping}
-Objections : ${avatar.objections_typiques.join(' | ')}
-Déclencheurs achat : ${avatar.declencheurs_achat.join(' | ')}
+Objections : ${safeArr(avatar.objections_typiques).join(' | ')}
+Déclencheurs achat : ${safeArr(avatar.declencheurs_achat).join(' | ')}
 Positionnement : ${strategie.positionnement}
 Budget recommandé : ${strategie.budget_lancement_recommande}
 

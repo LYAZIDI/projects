@@ -14,7 +14,7 @@ Catégorie : ${produit.categorie}
 Bénéfice principal : ${produit.benefice_principal}
 Problème résolu : ${produit.probleme_resolu}
 Cible : ${produit.cible_principale}
-Mots-clés : ${produit.mots_cles_concurrents.join(', ')}
+Mots-clés : ${(0, llm_1.safeArr)(produit.mots_cles_concurrents).join(', ')}
 Potentiel viral : ${produit.potentiel_viral}
 
 Retourne un objet JSON avec ce schéma exact :

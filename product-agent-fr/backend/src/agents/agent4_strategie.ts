@@ -1,4 +1,4 @@
-import { appelAgent } from './llm'
+import { appelAgent, safeArr } from './llm'
 import type { AnalyseProduit, AnalyseMarche, AvatarClient, StrategieMarketing } from './types'
 
 const SYSTEME = `Tu es un stratège marketing digital expert en e-commerce français.
@@ -20,11 +20,11 @@ Cible : ${produit.cible_principale}
 Prix recommandé : ${produit.fourchette_prix.recommande}€
 Score demande : ${marche.score_demande}/100
 Concurrence : ${marche.niveau_concurrence}
-Plateformes FR : ${marche.plateformes_fr_pertinentes.join(', ')}
+Plateformes FR : ${safeArr(marche.plateformes_fr_pertinentes).join(', ')}
 Avatar : ${avatar.prenom}, ${avatar.age.min}-${avatar.age.max} ans, ${avatar.genre}
-Réseaux : ${avatar.reseaux_sociaux.join(', ')}
-Objections : ${avatar.objections_typiques.join(' | ')}
-Déclencheurs : ${avatar.declencheurs_achat.join(' | ')}
+Réseaux : ${safeArr(avatar.reseaux_sociaux).join(', ')}
+Objections : ${safeArr(avatar.objections_typiques).join(' | ')}
+Déclencheurs : ${safeArr(avatar.declencheurs_achat).join(' | ')}
 
 Retourne un objet JSON avec ce schéma exact :
 {

@@ -3,9 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.safeArr = void 0;
 exports.appelAgent = appelAgent;
 exports.appelAgentVision = appelAgentVision;
 const openai_1 = __importDefault(require("openai"));
+const safeArr = (v) => Array.isArray(v) ? v : v != null ? [String(v)] : [];
+exports.safeArr = safeArr;
 const TEXT_MODEL = 'llama-3.3-70b-versatile';
 const VISION_MODEL = 'qwen/qwen3.6-27b';
 const JSON_INSTRUCTION = '\n\nIMPORTANT : Réponds UNIQUEMENT avec du JSON valide. Pas de markdown, pas d\'explication, pas de bloc de code. Sois concis — chaque valeur textuelle doit faire moins de 80 mots.';

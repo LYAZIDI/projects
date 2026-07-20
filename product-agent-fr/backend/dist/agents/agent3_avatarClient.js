@@ -15,9 +15,9 @@ Produit : ${produit.nom}
 Bénéfice : ${produit.benefice_principal}
 Problème : ${produit.probleme_resolu}
 Cible : ${produit.cible_principale}
-Marchés : ${marche.marches_prioritaires.join(', ')}
+Marchés : ${(0, llm_1.safeArr)(marche.marches_prioritaires).join(', ')}
 Score demande : ${marche.score_demande}/100
-Plateformes FR : ${marche.plateformes_fr_pertinentes.join(', ')}
+Plateformes FR : ${(0, llm_1.safeArr)(marche.plateformes_fr_pertinentes).join(', ')}
 
 Retourne un objet JSON avec ce schéma exact :
 {

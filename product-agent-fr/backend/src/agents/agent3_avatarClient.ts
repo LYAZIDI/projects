@@ -1,4 +1,4 @@
-import { appelAgent } from './llm'
+import { appelAgent, safeArr } from './llm'
 import type { AnalyseProduit, AnalyseMarche, AvatarClient } from './types'
 
 const SYSTEME = `Tu es un expert en psychologie du consommateur français et en marketing comportemental.
@@ -18,9 +18,9 @@ Produit : ${produit.nom}
 Bénéfice : ${produit.benefice_principal}
 Problème : ${produit.probleme_resolu}
 Cible : ${produit.cible_principale}
-Marchés : ${marche.marches_prioritaires.join(', ')}
+Marchés : ${safeArr(marche.marches_prioritaires).join(', ')}
 Score demande : ${marche.score_demande}/100
-Plateformes FR : ${marche.plateformes_fr_pertinentes.join(', ')}
+Plateformes FR : ${safeArr(marche.plateformes_fr_pertinentes).join(', ')}
 
 Retourne un objet JSON avec ce schéma exact :
 {

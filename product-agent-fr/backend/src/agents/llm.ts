@@ -1,5 +1,8 @@
 import OpenAI from 'openai'
 
+export const safeArr = (v: unknown): string[] =>
+  Array.isArray(v) ? (v as string[]) : v != null ? [String(v)] : []
+
 const TEXT_MODEL = 'llama-3.3-70b-versatile'
 const VISION_MODEL = 'qwen/qwen3.6-27b'
 

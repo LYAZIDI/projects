@@ -13,13 +13,13 @@ async function runPageProduit(produit, avatar, offre) {
 Produit : ${produit.nom}
 Bénéfice principal : ${produit.benefice_principal}
 Problème résolu : ${produit.probleme_resolu}
-Caractéristiques : ${produit.caracteristiques_uniques.join(', ')}
-Avatar : ${avatar.prenom}, points de douleur : ${avatar.points_douleur.slice(0, 2).join(' | ')}
-Objections : ${avatar.objections_typiques.join(' | ')}
+Caractéristiques : ${(0, llm_1.safeArr)(produit.caracteristiques_uniques).join(', ')}
+Avatar : ${avatar.prenom}, points de douleur : ${(0, llm_1.safeArr)(avatar.points_douleur).slice(0, 2).join(' | ')}
+Objections : ${(0, llm_1.safeArr)(avatar.objections_typiques).join(' | ')}
 Prix : ${offre.prix_psychologique}€ (barré ${offre.prix_barre}€)
 Garantie : ${offre.garantie.message}
 CTA : ${offre.appel_a_action_principal}
-Mots-clés : ${produit.mots_cles_concurrents.join(', ')}
+Mots-clés : ${(0, llm_1.safeArr)(produit.mots_cles_concurrents).join(', ')}
 
 Retourne un objet JSON avec ce schéma exact :
 {

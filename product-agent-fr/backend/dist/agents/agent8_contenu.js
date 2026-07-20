@@ -15,9 +15,9 @@ Bénéfice : ${produit.benefice_principal}
 Facteur WOW : ${produit.facteur_wow}
 Problème : ${produit.probleme_resolu}
 Avatar : ${avatar.prenom}, ${avatar.age.min}-${avatar.age.max} ans
-Réseaux : ${avatar.reseaux_sociaux.join(', ')}
-Points douleur : ${avatar.points_douleur.join(' | ')}
-Désirs : ${avatar.desirs.join(' | ')}
+Réseaux : ${(0, llm_1.safeArr)(avatar.reseaux_sociaux).join(', ')}
+Points douleur : ${(0, llm_1.safeArr)(avatar.points_douleur).join(' | ')}
+Désirs : ${(0, llm_1.safeArr)(avatar.desirs).join(' | ')}
 Journée type : ${avatar.journee_type}
 
 Retourne un objet JSON avec ce schéma exact :
