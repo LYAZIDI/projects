@@ -13,7 +13,13 @@ app.use(express_1.default.json({ limit: '20mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '20mb' }));
 app.use('/api/analyse', analyseRoutes_1.default);
 app.get('/api/health', (_req, res) => {
-    res.json({ statut: 'ok', version: '1.0.0', timestamp: new Date().toISOString() });
+    const key = process.env.GEMINI_API_KEY;
+    res.json({
+        statut: 'ok',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        gemini_key: key ? `set (${key.length} chars)` : 'MISSING',
+    });
 });
 exports.default = app;
 //# sourceMappingURL=app.js.map
