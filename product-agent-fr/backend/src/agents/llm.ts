@@ -18,10 +18,13 @@ function parseResponse(raw: OpenAI.Chat.Completions.ChatCompletion): string {
   if (!raw.choices || raw.choices.length === 0) {
     throw new Error(`Réponse Groq vide ou invalide : ${JSON.stringify(raw).slice(0, 300)}`)
   }
-  return (raw.choices[0].message.content ?? '').trim()
+  return (raw.choices[0].message.content ?? '')
+    .replace(/<think>[\s\S]*?<\/think>/i, '')
+    .trim()
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
+    .trim()
 }
 
 export async function appelAgent<T>(
