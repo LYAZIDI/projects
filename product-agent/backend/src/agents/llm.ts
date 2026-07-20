@@ -1,33 +1,25 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenAI } from '@google/genai'
 
-// Lazy init — ensures dotenv has run before the client is created
-let _client: Anthropic | null = null
-function getClient(): Anthropic {
-  if (!_client) _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+let _client: GoogleGenAI | null = null
+function getClient(): GoogleGenAI {
+  if (!_client) _client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
   return _client
 }
 
-/**
- * Call Claude and parse the JSON response.
- * The system prompt forces structured JSON output.
- */
 export async function callAgent<T>(
   systemPrompt: string,
   userPrompt: string,
-  maxTokens = 2048
+  _maxTokens = 2048
 ): Promise<T> {
-  const response = await getClient().messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: maxTokens,
-    system: systemPrompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation, no code block. Be concise — keep string values under 100 words each.',
-    messages: [{ role: 'user', content: userPrompt }],
+  const response = await getClient().models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [{ parts: [{ text: userPrompt }] }],
+    config: {
+      systemInstruction: systemPrompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation, no code block. Be concise — keep string values under 100 words each.',
+    },
   })
 
-  const text = response.content
-    .filter(b => b.type === 'text')
-    .map(b => (b as { type: 'text'; text: string }).text)
-    .join('')
-    .trim()
+  const text = (response.text ?? '').trim()
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')

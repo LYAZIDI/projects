@@ -96,7 +96,7 @@ router.post('/analyze/stream', upload.single('image'), async (req, res) => {
 
 // ── GET /api/health ───────────────────────────────────────────────────────────
 router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', apiKey: process.env.ANTHROPIC_API_KEY ? 'configured' : 'MISSING' })
+  res.json({ status: 'ok', gemini: process.env.GEMINI_API_KEY ? 'configured' : 'MISSING' })
 })
 
 export default router
