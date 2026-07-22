@@ -1,6 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenAI } from '@google/genai'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+let _client: GoogleGenAI | null = null
+function getClient(): GoogleGenAI {
+  if (!_client) _client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
+  return _client
+}
 
 export interface TranslatedCV {
   name: string
@@ -27,7 +31,9 @@ export async function translateCV(rawText: string | undefined, parsedData: {
     ? `Here is the raw CV text:\n<cv_text>\n${rawText.slice(0, 4000)}\n</cv_text>\n`
     : ''
 
-  const prompt = `You are a professional CV translator and writer. Translate the following CV from its original language to English.
+  const systemPrompt = `You are a professional CV translator. Always respond with valid JSON only, no markdown or extra text.`
+
+  const userPrompt = `You are a professional CV translator and writer. Translate the following CV from its original language to English.
 
 ${rawSection}
 
@@ -74,20 +80,17 @@ Return ONLY valid JSON with this exact structure, no markdown, no explanation:
   "languages": ["...", "..."]
 }`
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
-    system: 'You are a professional CV translator. Always respond with valid JSON only, no markdown or extra text.',
-    messages: [{ role: 'user', content: prompt }],
+  const response = await getClient().models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: [{ parts: [{ text: userPrompt }] }],
+    config: {
+      systemInstruction: systemPrompt,
+    },
   })
 
-  const content = message.content[0]
-  if (content.type !== 'text') throw new Error('Unexpected response type from Claude')
+  let text = (response.text ?? '').trim()
+  text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
 
-  let json = content.text.trim()
-  // Strip markdown code blocks if present
-  json = json.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim()
-
-  const translated: TranslatedCV = JSON.parse(json)
+  const translated: TranslatedCV = JSON.parse(text)
   return translated
 }
