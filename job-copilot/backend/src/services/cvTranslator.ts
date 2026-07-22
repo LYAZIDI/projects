@@ -23,61 +23,55 @@ export async function translateCV(rawText: string | undefined, parsedData: {
   email: string
   phone: string
   skills: string[]
-  experience: { title: string; company: string; period: string }[]
+  experience: { title: string; company: string; period: string; description?: string }[]
   education: { degree: string; school: string; year: string }[]
   languages: string[]
 }): Promise<TranslatedCV> {
   const rawSection = rawText
-    ? `Here is the raw CV text:\n<cv_text>\n${rawText.slice(0, 4000)}\n</cv_text>\n`
+    ? `Here is the raw CV text (use it to enrich bullet points):\n<cv_text>\n${rawText.slice(0, 10000)}\n</cv_text>\n`
     : ''
+
+  const expCount = parsedData.experience.length
+  const expJson = JSON.stringify(parsedData.experience, null, 2)
 
   const systemPrompt = `You are a professional CV translator. Always respond with valid JSON only, no markdown or extra text.`
 
-  const userPrompt = `You are a professional CV translator and writer. Translate the following CV from its original language to English.
+  const userPrompt = `Translate this CV to professional English. Return ONLY valid JSON, no markdown, no explanation.
 
 ${rawSection}
 
-Here is the structured data already extracted from the CV:
+Structured CV data:
 - Name: ${parsedData.name}
 - Email: ${parsedData.email}
 - Phone: ${parsedData.phone}
 - Skills: ${parsedData.skills.join(', ')}
-- Experience: ${JSON.stringify(parsedData.experience)}
+- Experience (${expCount} entries — translate ALL ${expCount}):
+${expJson}
 - Education: ${JSON.stringify(parsedData.education)}
 - Languages: ${parsedData.languages.join(', ')}
 
-Your task:
-1. Detect the source language of the CV
+Instructions:
+1. Detect source language
 2. Translate ALL content to professional English
-3. For each experience entry, extract or generate 2-3 impactful bullet points describing responsibilities and achievements
-4. Write a compelling professional summary (3-4 sentences) in English based on the CV content
-5. Translate skill names to their standard English equivalents (e.g. "Gestion de projet" → "Project Management")
-6. Keep proper nouns (company names, school names, certifications) as-is unless they have a standard English equivalent
+3. IMPORTANT: include ALL ${expCount} experience entries in the output — do not skip any
+4. For each experience, write 2-3 impactful bullet points (use raw CV text for details if available)
+5. Write a 3-4 sentence professional summary
+6. Translate skills to standard English equivalents
+7. Keep company/school names as-is
 
-Return ONLY valid JSON with this exact structure, no markdown, no explanation:
+JSON structure:
 {
   "detectedSourceLanguage": "French",
   "name": "...",
   "email": "...",
   "phone": "...",
   "summary": "...",
-  "skills": ["...", "..."],
+  "skills": ["..."],
   "experience": [
-    {
-      "title": "...",
-      "company": "...",
-      "period": "...",
-      "bullets": ["...", "...", "..."]
-    }
+    { "title": "...", "company": "...", "period": "...", "bullets": ["...", "...", "..."] }
   ],
-  "education": [
-    {
-      "degree": "...",
-      "school": "...",
-      "year": "..."
-    }
-  ],
-  "languages": ["...", "..."]
+  "education": [{ "degree": "...", "school": "...", "year": "..." }],
+  "languages": ["..."]
 }`
 
   const response = await getClient().models.generateContent({
