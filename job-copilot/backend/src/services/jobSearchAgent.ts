@@ -52,7 +52,7 @@ Trouve au moins 10 offres pertinentes et actuelles.
 `.trim()
 
   const step1 = await client.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     contents: [{ parts: [{ text: searchPrompt }] }],
     config: {
       tools: [{ googleSearch: {} }],
@@ -89,7 +89,7 @@ Exemple : [{"title":"...","company":"...","location":"...","salary":"...","type"
 `.trim()
 
   const step2 = await client.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     contents: [{ parts: [{ text: structurePrompt }] }],
     config: {
       systemInstruction: 'Réponds UNIQUEMENT avec un tableau JSON valide. Aucun markdown, aucun texte avant ou après.',

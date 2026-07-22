@@ -81,7 +81,7 @@ Return ONLY valid JSON with this exact structure, no markdown, no explanation:
 }`
 
   const response = await getClient().models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     contents: [{ parts: [{ text: userPrompt }] }],
     config: {
       systemInstruction: systemPrompt,
