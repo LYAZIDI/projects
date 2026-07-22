@@ -51,8 +51,8 @@ function extractExpsFromRaw(raw: string): RawExp[] {
   let inSection = false
   let cur: RawExp | null = null
 
-  // Date: "2023 – 2025", "2023 – en cours", "2023 – présent", "Oct. 2023 – en cours"
-  const dateRx = /\b(20\d{2}|19\d{2})\s*[-–—]\s*(20\d{2}|19\d{2}|en\s*cours|présent|present|maintenant|aujourd['']hui|current)\b/i
+  // Date: "2023 – 2025", "07/2022 – présent", "09/2019 – 07/2022"
+  const dateRx = /\b(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2})\s*[-–—]\s*(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2}|en\s*cours|présent|present|maintenant|aujourd['']hui|current)\b/i
 
   for (const line of lines) {
     if (!line) continue
@@ -263,10 +263,12 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
     : sector === 'commerce' ? 'Commerce'
     : ''
 
-  // Experiences: prefer rawText extraction (more reliable than parser for edge cases)
+  // Experiences: rawText extraction for bullets, but cv.experience is authoritative for count
+  const parsedExps = cv.experience || []
   let exps = extractExpsFromRaw(rawText)
-  if (exps.length === 0 && (cv.experience || []).length > 0) {
-    exps = (cv.experience || []).map(e => ({
+  // If rawText extraction found fewer experiences than the parser, use parser as primary source
+  if (exps.length < parsedExps.length) {
+    exps = parsedExps.map(e => ({
       period: e.period,
       title: e.title,
       company: e.company,
