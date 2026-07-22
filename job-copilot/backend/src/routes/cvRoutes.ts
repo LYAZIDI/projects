@@ -159,7 +159,7 @@ router.post('/translate', async (req, res) => {
   try {
     const { rawText, parsedData } = req.body
     if (!parsedData) return res.status(400).json({ error: 'parsedData requis.' })
-    if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY non configurée.' })
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY non configurée.' })
 
     const translated = await translateCV(rawText, parsedData)
     return res.json({ success: true, translated })
