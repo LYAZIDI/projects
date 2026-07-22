@@ -150,7 +150,7 @@ function extractSkills(text: string): string[] {
 
 // ─── Experience ───────────────────────────────────────────────────────────────
 
-const DATE_RX = /\b(20\d{2}|19\d{2})\s*[-–]\s*(20\d{2}|19\d{2}|présent|present|aujourd['']hui|current|en\s*cours)\b/gi
+const DATE_RX = /\b(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2})\s*[-–]\s*(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2}|présent|present|aujourd['']hui|current|en\s*cours)\b/gi
 
 // Lines that look like education entries and should never be treated as experience
 const EDU_LINE_RX = /\b(bts|dut|bac\b|bac\+|master|licence|bachelor|mba|phd|doctorat|cap\b|ingénieur|formation|diplôme|diplome|certificat)\b/i
@@ -362,7 +362,7 @@ export async function parseCV(buffer: Buffer, mimetype: string): Promise<ParsedC
   const { score, found, missing, sector } = calculateATS(rawText, skills)
 
   const result: any = {
-    rawText: rawText.slice(0, 3000),
+    rawText: rawText.slice(0, 8000),
     name, email, phone, skills,
     experience, education, languages,
     atsScore: score,
