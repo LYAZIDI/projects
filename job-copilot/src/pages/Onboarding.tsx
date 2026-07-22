@@ -564,11 +564,6 @@ export default function Onboarding() {
                 <>Trouver mes offres <ChevronRight size={16} /></>
               )}
             </button>
-            {searching && (
-              <p className="text-xs text-gray-400 text-center mt-2">
-                Gemini analyse votre profil et cherche des offres sur le web…
-              </p>
-            )}
           </div>
         )}
 
