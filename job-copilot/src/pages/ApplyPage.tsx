@@ -210,6 +210,77 @@ export default function ApplyPage() {
     setTimeout(() => setCopied(null), 2000)
   }
 
+  async function downloadOptimizedDocx() {
+    if (!cv) return
+    const mergedSkills = [...new Set([...matchedSkills, ...cv.skills])]
+    try {
+      const res = await fetch(`${API}/api/cv/generate-docx-translated`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cv.name,
+          email: cv.email,
+          phone: cv.phone,
+          summary: '',
+          skills: mergedSkills,
+          experience: cv.experience.map((e: any) => ({
+            title: e.title,
+            company: e.company,
+            period: e.period,
+            bullets: e.description ? [e.description] : [],
+          })),
+          education: cv.education,
+          languages: cv.languages,
+        }),
+      })
+      if (!res.ok) throw new Error('Erreur génération')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV_Optimise_${(cv.name || 'CV').replace(/\s+/g, '_')}.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Impossible de générer le DOCX. Vérifiez que le backend est accessible.')
+    }
+  }
+
+  function printOptimizedPDF() {
+    if (!cv) return
+    const mergedSkills = [...new Set([...matchedSkills, ...cv.skills])]
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV ${cv.name}</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 40px; }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #666; font-size: 11px; margin-bottom: 20px; }
+  h2 { font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-top: 16px; }
+  p { margin: 4px 0; }
+  .skills { color: #4f46e5; }
+  .exp-title { font-weight: bold; }
+  .exp-meta { color: #666; font-size: 11px; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+<h1>${cv.name}</h1>
+<p class="subtitle">${[cv.email, cv.phone, cv.languages?.[0]].filter(Boolean).join(' • ')}</p>
+<h2>Compétences clés</h2>
+<p class="skills">${mergedSkills.join(', ')}</p>
+${cv.experience?.length ? `<h2>Expérience</h2>${cv.experience.slice(0, 3).map((e: any) =>
+  `<p class="exp-title">${e.title}${e.company ? ` — ${e.company}` : ''}</p><p class="exp-meta">${e.period || ''}</p>${e.description ? `<p>${e.description}</p>` : ''}`
+).join('')}` : ''}
+${cv.education?.length ? `<h2>Formation</h2>${cv.education.map((e: any) =>
+  `<p>${e.degree}${e.school ? ` — ${e.school}` : ''}${e.year ? ` (${e.year})` : ''}</p>`
+).join('')}` : ''}
+${cv.languages?.length ? `<h2>Langues</h2><p>${cv.languages.join(' • ')}</p>` : ''}
+</body></html>`
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    setTimeout(() => { w.print(); w.close() }, 300)
+  }
+
   if (!job) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -390,8 +461,8 @@ export default function ApplyPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button className="btn-secondary text-xs">PDF</button>
-                        <button className="btn-secondary text-xs">DOCX</button>
+                        <button onClick={printOptimizedPDF} className="btn-secondary text-xs">PDF</button>
+                        <button onClick={downloadOptimizedDocx} className="btn-secondary text-xs">DOCX</button>
                       </div>
                     </div>
 
