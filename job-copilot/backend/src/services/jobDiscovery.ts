@@ -13,7 +13,7 @@
 import pool from '../db/pgClient'
 import type { Job, JobSource } from '../types'
 
-async function dbInsertManyJobs(jobs: Job[]): Promise<number> {
+export async function dbInsertManyJobs(jobs: Job[]): Promise<number> {
   if (!jobs.length) return 0
   let added = 0
   for (const job of jobs) {
@@ -34,7 +34,7 @@ async function dbInsertManyJobs(jobs: Job[]): Promise<number> {
   return added
 }
 
-async function dbCountJobs(): Promise<number> {
+export async function dbCountJobs(): Promise<number> {
   const { rows } = await pool.query(`SELECT COUNT(*) FROM jobs`)
   return parseInt(rows[0].count, 10)
 }

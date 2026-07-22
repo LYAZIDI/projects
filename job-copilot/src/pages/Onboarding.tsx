@@ -48,6 +48,14 @@ export default function Onboarding() {
   const [translated, setTranslated] = useState<TranslatedCV | null>(null)
   const [downloadingTranslated, setDownloadingTranslated] = useState(false)
   const [translateError, setTranslateError] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  // Préférences utilisateur
+  const [jobTitle, setJobTitle] = useState('')
+  const [location, setLocation] = useState('Paris, France')
+  const [salary, setSalary] = useState('65 000 €/an')
+  const [contractType, setContractType] = useState<string>('CDI')
+  const [remoteOnly, setRemoteOnly] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
@@ -119,9 +127,16 @@ export default function Onboarding() {
   // Drive the analysis animation steps while the API call runs
   useEffect(() => {
     if (analysisStep < 0 || analysisStep >= ANALYSIS_STEPS.length - 1) return
-    const timer = setTimeout(() => setAnalysisStep(s => s + 1), 600 + Math.random() * 400)
+    const timer = setTimeout(() => setAnalysisStep((s: number) => s + 1), 600 + Math.random() * 400)
     return () => clearTimeout(timer)
   }, [analysisStep])
+
+  // Pré-remplir le poste recherché depuis la première expérience du CV
+  useEffect(() => {
+    if (parsed?.experience?.[0]?.title && !jobTitle) {
+      setJobTitle(parsed.experience[0].title)
+    }
+  }, [parsed])
 
   // Once parsed data arrives, show step 1 results
   useEffect(() => {
@@ -129,8 +144,8 @@ export default function Onboarding() {
     setStep(1)
     setAnalysisStep(-1)
     // Animate skills
-    parsed.skills.forEach((_, i) => {
-      setTimeout(() => setVisibleSkills(prev => [...prev, parsed.skills[i]]), i * 100)
+    parsed.skills.forEach((_: string, i: number) => {
+      setTimeout(() => setVisibleSkills((prev: string[]) => [...prev, parsed.skills[i]]), i * 100)
     })
     // Animate ATS score counter
     let current = 0
@@ -176,6 +191,33 @@ export default function Onboarding() {
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) uploadFile(file)
+  }
+
+  async function launchJobSearch() {
+    setSearching(true)
+    setSearchError('')
+    try {
+      const res = await fetch(`${API}/api/discovery/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobTitle,
+          location,
+          salary,
+          contractType,
+          remote: remoteOnly,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erreur recherche')
+      // Stocker le nombre d'offres pour l'affichage step 3
+      localStorage.setItem('jobcopilot_job_count', String(data.total ?? data.added ?? 0))
+      setStep(3)
+    } catch (err: any) {
+      setSearchError(err.message || 'Impossible de lancer la recherche.')
+    } finally {
+      setSearching(false)
+    }
   }
 
   // Fallback: use mock data if backend not available
@@ -453,34 +495,80 @@ export default function Onboarding() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1.5">Poste recherché</label>
-                <input defaultValue={parsed?.experience[0]?.title || ''} placeholder="Ex: Développeur React Senior" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <input
+                  value={jobTitle}
+                  onChange={e => setJobTitle(e.target.value)}
+                  placeholder="Ex: Développeur React Senior"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">Localisation</label>
-                  <input defaultValue="Paris, France" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  <input
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">Salaire cible</label>
-                  <input defaultValue="65 000 €/an" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  <input
+                    value={salary}
+                    onChange={e => setSalary(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1.5">Type de contrat</label>
                 <div className="flex gap-2 flex-wrap">
-                  {['CDI', 'CDD', 'Freelance', 'Remote uniquement'].map(t => (
-                    <button key={t} className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                      t === 'CDI' || t === 'Remote uniquement'
+                  {(['CDI', 'CDD', 'Freelance', 'Stage', 'Alternance'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setContractType(t)}
+                      className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                        contractType === t
+                          ? 'border-primary bg-primary/10 text-primary font-medium'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >{t}</button>
+                  ))}
+                  <button
+                    onClick={() => setRemoteOnly(r => !r)}
+                    className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                      remoteOnly
                         ? 'border-primary bg-primary/10 text-primary font-medium'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}>{t}</button>
-                  ))}
+                    }`}
+                  >Remote uniquement</button>
                 </div>
               </div>
             </div>
-            <button onClick={() => setStep(3)} className="btn-primary w-full mt-6 flex items-center justify-center gap-2">
-              Trouver mes offres <ChevronRight size={16} />
+
+            {searchError && (
+              <p className="text-xs text-red-500 mt-3 text-center">{searchError}</p>
+            )}
+
+            <button
+              onClick={launchJobSearch}
+              disabled={searching || !jobTitle.trim()}
+              className="btn-primary w-full mt-6 flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {searching ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Recherche en cours…
+                </>
+              ) : (
+                <>Trouver mes offres <ChevronRight size={16} /></>
+              )}
             </button>
+            {searching && (
+              <p className="text-xs text-gray-400 text-center mt-2">
+                Gemini analyse votre profil et cherche des offres sur le web…
+              </p>
+            )}
           </div>
         )}
 
@@ -492,11 +580,15 @@ export default function Onboarding() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Tout est prêt !</h2>
             <p className="text-gray-500 mb-1">
-              Nous avons trouvé <span className="font-bold text-primary">47 offres</span> correspondant à votre profil.
+              Nous avons trouvé{' '}
+              <span className="font-bold text-primary">
+                {localStorage.getItem('jobcopilot_job_count') || '–'} offres
+              </span>{' '}
+              correspondant à votre profil.
             </p>
             {parsed && parsed.skills.length > 0 && (
               <p className="text-xs text-gray-400 mb-6">
-                Basé sur {parsed.skills.length} compétences détectées dans votre CV
+                Basé sur {parsed.skills.length} compétences détectées dans votre CV · Poste : {jobTitle}
               </p>
             )}
             <button onClick={() => navigate('/dashboard')} className="btn-primary px-8 py-3 text-base flex items-center gap-2 mx-auto">
