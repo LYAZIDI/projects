@@ -79,6 +79,8 @@ JSON structure:
     contents: [{ parts: [{ text: userPrompt }] }],
     config: {
       systemInstruction: systemPrompt,
+      maxOutputTokens: 8192,
+      responseMimeType: 'application/json',
     },
   })
 
