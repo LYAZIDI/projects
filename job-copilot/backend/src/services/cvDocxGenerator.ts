@@ -79,7 +79,7 @@ function extractExpsFromRaw(raw: string): RawExp[] {
     }
 
     const hdr = line.replace(/^[\d\s.•\-–→▪▸■◆*#]+/, '').trim()
-    if (/^(formation|comp.{0,3}tence|.{0,2}ducation|langues?|profil|centres?|loisirs?|r.{0,3}f.{0,3}rence)/i.test(hdr) && hdr.length < 70) break
+    if (/^(formation|comp.{0,3}tence|.{0,2}ducation|langues?|centres?|loisirs?|r.{0,3}f.{0,3}rence)/i.test(hdr) && hdr.length < 70) break
 
     if (skipNext) { skipNext = false; continue }
 

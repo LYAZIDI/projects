@@ -12,7 +12,8 @@ import type { ParsedCV, ExperienceItem, EducationItem } from '../types'
 const SECTION_EXP    = /^exp.{0,3}riences?|^parcours.{0,5}professionnel|^emplois?/i
 const SECTION_EDU    = /^(formations?|.{0,2}ducations?|dipl.{0,3}mes?|.{0,2}tudes?)/i
 const SECTION_SKILLS = /^(comp.{0,3}tences?.{0,10}(cl.{0,2}s?)?|skills?)/i
-const SECTION_ANY    = /^(exp.{0,3}riences?|formations?|comp.{0,3}tences?|.{0,2}ducations?|langues?|centres?|loisirs?|r.{0,3}f.{0,3}rences?|projets?|profil)/i
+// "projets?" removed: "Projet :" appears inside experience descriptions and would cut the section early
+const SECTION_ANY    = /^(exp.{0,3}riences?|formations?|comp.{0,3}tences?|.{0,2}ducations?|langues?|centres?|loisirs?|r.{0,3}f.{0,3}rences?)/i
 
 // ─── Text extractor ───────────────────────────────────────────────────────────
 
@@ -204,11 +205,17 @@ function extractExperience(text: string): ExperienceItem[] {
     let bulletStartIdx: number
 
     if (isDateLine) {
-      // Multi-line format: company = previous line, title = next line
+      // Multi-line format: date is its own line; company = previous lines (up to 2 for long names), title = next line
       period = line.trim()
-      if (i > 0 && !DATE_LINE_RX.test(lines[i - 1])) {
-        company = clean(lines[i - 1])
+      // Collect up to 2 lines backwards as company name (handles "ASIS - BRUNEAU - SAINT\nETIENNE")
+      const companyParts: string[] = []
+      for (let k = i - 1; k >= 0 && k >= i - 2; k--) {
+        const prev = lines[k]
+        if (!prev || DATE_LINE_RX.test(prev) || /^[-•▸■]/.test(prev)) break
+        if (prev.length > 80) break
+        companyParts.unshift(prev)
       }
+      company = clean(companyParts.join(' '))
       if (i + 1 < lines.length && !DATE_LINE_RX.test(lines[i + 1])) {
         title = clean(lines[i + 1])
       }
