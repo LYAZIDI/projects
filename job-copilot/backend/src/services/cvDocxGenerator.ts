@@ -5,7 +5,7 @@
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
-  LevelFormat, Footer, TabStopType,
+  LevelFormat, Footer,
 } from 'docx'
 import type { UserProfile } from './profileService'
 
@@ -133,15 +133,12 @@ function extractExpsFromRaw(raw: string): RawExp[] {
 /** Extract profile summary paragraph from rawText */
 function extractSummary(raw: string, skills: string[], yearsExp: number): string {
   if (raw) {
-    // Try dedicated "Profil" section first
-    const m = raw.match(/(?:^|\n)\s*profil\s*(?:professionnel)?\s*\n+([\s\S]{30,500}?)(?:\n\n|\nExp|\nComp|\nFor)/i)
+    // Look for a dedicated "Profil" section
+    const m = raw.match(/(?:^|\n)\s*profil\s*(?:professionnel|de\s+candidat)?\s*\n+([\s\S]{30,500}?)(?:\n{2,}|\nExp|\nComp|\nFor)/i)
     if (m) return m[1].replace(/\n/g, ' ').trim().slice(0, 400)
-    // Fallback: use the first substantial paragraph (likely the summary at top of CV)
-    const paras = raw.split(/\n{2,}/).map(p => p.replace(/\n/g, ' ').trim()).filter(p => p.length > 60)
-    if (paras.length > 0) return paras[0].slice(0, 400)
   }
-  // Generate from data
-  const top = (skills || []).slice(0, 3).join(', ')
+  // Generate from structured data (safer than pulling PDF header as summary)
+  const top = (skills || []).slice(0, 4).join(', ')
   const exp = yearsExp > 0 ? `${yearsExp} ans d'expérience` : 'Professionnel expérimenté'
   return `${exp} en ${top || 'son domaine'}. Disponible immédiatement.`
 }
@@ -226,29 +223,31 @@ function mainSection(label: string): Paragraph {
   })
 }
 
-function expBlock(exp: RawExp, tabW: number): Paragraph[] {
+function expBlock(exp: RawExp, _tabW: number): Paragraph[] {
   const out: Paragraph[] = []
 
-  // Company + period
+  // Company (bold)
   out.push(new Paragraph({
-    spacing: { before: 160, after: 20 },
-    tabStops: [{ type: TabStopType.RIGHT, position: tabW - 80 }],
+    spacing: { before: 160, after: 8 },
     border: { left: { style: BorderStyle.SINGLE, size: 16, color: TEAL, space: 8 } },
     indent: { left: 160 },
     children: [
       new TextRun({ text: exp.company || exp.title, bold: true, size: 21, font: 'Montserrat', color: CHARCOAL }),
-      new TextRun({ text: '\t' + exp.period, size: 18, font: 'Calibri', color: TEAL, italics: true }),
     ],
   }))
 
-  // Title + location
-  const subtitle = [exp.company ? exp.title : '', exp.location].filter(Boolean).join('  ·  ')
-  if (subtitle) {
+  // Title · Period · Location (subtitle line)
+  const subtitleParts = [
+    exp.company ? exp.title : '',
+    exp.period,
+    exp.location,
+  ].filter(Boolean)
+  if (subtitleParts.length) {
     out.push(new Paragraph({
       spacing: { before: 0, after: 60 },
       border: { left: { style: BorderStyle.SINGLE, size: 16, color: TEAL, space: 8 } },
       indent: { left: 160 },
-      children: [new TextRun({ text: subtitle, size: 19, font: 'Calibri', color: SILVER, italics: true })],
+      children: [new TextRun({ text: subtitleParts.join('  ·  '), size: 19, font: 'Calibri', color: TEAL, italics: true })],
     }))
   }
 
