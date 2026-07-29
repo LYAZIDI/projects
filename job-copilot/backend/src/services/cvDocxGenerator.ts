@@ -320,89 +320,10 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
   // Languages
   const langs: string[] = (cv.languages || []).length > 0 ? cv.languages : []
 
-  // ── HEADER ───────────────────────────────────────────────────────────────
-  const headerTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [SIDE_W, MAIN_W],
-    rows: [new TableRow({
-      children: [
-        // Sidebar portion of header
-        new TableCell({
-          shading: { fill: NAVY_DARK, type: ShadingType.CLEAR },
-          borders: noBorders,
-          width: { size: SIDE_W, type: WidthType.DXA },
-          margins: { top: 500, bottom: 500, left: 400, right: 300 },
-          verticalAlign: VerticalAlign.BOTTOM,
-          children: [
-            ...(sectorLabel ? [new Paragraph({
-              spacing: { before: 0, after: 60 },
-              children: [new TextRun({ text: '★ ' + sectorLabel, size: 20, font: 'Calibri', color: GOLD })],
-            })] : []),
-            ...(location ? [new Paragraph({
-              spacing: { before: 0, after: 0 },
-              children: [new TextRun({ text: location, size: 17, font: 'Calibri', color: SILVER })],
-            })] : []),
-          ],
-        }),
-        // Main portion of header
-        new TableCell({
-          shading: { fill: NAVY, type: ShadingType.CLEAR },
-          borders: noBorders,
-          width: { size: MAIN_W, type: WidthType.DXA },
-          margins: { top: 400, bottom: 400, left: 480, right: 500 },
-          children: [
-            new Paragraph({
-              spacing: { before: 0, after: 80 },
-              children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 64, font: 'Montserrat', color: WHITE })],
-            }),
-            new Paragraph({
-              spacing: { before: 0, after: 60 },
-              children: [new TextRun({ text: jobTitle, size: 24, font: 'Montserrat', color: TEAL, characterSpacing: 60 })],
-            }),
-            new Paragraph({
-              spacing: { before: 0, after: 0 },
-              border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: GOLD, space: 0 } },
-              children: [new TextRun({ text: '' })],
-            }),
-          ],
-        }),
-      ],
-    })],
-  })
-
-  // ── CONTACT STRIP ────────────────────────────────────────────────────────
+  // ── CONTACT ITEMS ────────────────────────────────────────────────────────
   const contactItems: string[] = []
   if (cv.phone) contactItems.push('📞 ' + cv.phone)
   if (cv.email) contactItems.push('✉ ' + cv.email)
-
-  const contactStrip = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [SIDE_W, MAIN_W],
-    rows: [new TableRow({
-      children: [
-        new TableCell({
-          shading: { fill: NAVY_LIGHT, type: ShadingType.CLEAR },
-          borders: noBorders,
-          width: { size: SIDE_W, type: WidthType.DXA },
-          margins: { top: 100, bottom: 100, left: 400, right: 300 },
-          children: [new Paragraph({
-            children: [new TextRun({ text: 'CONTACT', size: 15, font: 'Montserrat', color: GOLD, bold: true, characterSpacing: 40 })],
-          })],
-        }),
-        new TableCell({
-          shading: { fill: 'F5F0E8', type: ShadingType.CLEAR },
-          borders: { ...noBorders, left: { style: BorderStyle.SINGLE, size: 16, color: GOLD, space: 0 } },
-          width: { size: MAIN_W, type: WidthType.DXA },
-          margins: { top: 100, bottom: 100, left: 480, right: 300 },
-          children: [new Paragraph({
-            children: contactItems.map((item, i) =>
-              new TextRun({ text: (i === 0 ? '' : '    ') + item, size: 19, font: 'Calibri', color: CHARCOAL })
-            ),
-          })],
-        }),
-      ],
-    })],
-  })
 
   // ── SIDEBAR content ──────────────────────────────────────────────────────
   const sideChildren: Paragraph[] = []
@@ -545,31 +466,105 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
     }
   }
 
-  // ── TWO-COLUMN TABLE ─────────────────────────────────────────────────────
-  const twoCol = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+  // ── SINGLE TABLE: header row + contact strip row + main content row ──────
+  // Combining into one table prevents Word from pushing the content to page 2
+  const fullTable = new Table({
+    width: { size: A4_W, type: WidthType.DXA },
     columnWidths: [SIDE_W, MAIN_W],
-    rows: [new TableRow({
-      cantSplit: false,
-      children: [
-        new TableCell({
-          shading: { fill: NAVY, type: ShadingType.CLEAR },
-          borders: noBorders,
-          width: { size: SIDE_W, type: WidthType.DXA },
-          margins: { top: 240, bottom: 600, left: 400, right: 300 },
-          verticalAlign: VerticalAlign.TOP,
-          children: sideChildren,
-        }),
-        new TableCell({
-          shading: { fill: CREAM, type: ShadingType.CLEAR },
-          borders: noBorders,
-          width: { size: MAIN_W, type: WidthType.DXA },
-          margins: { top: 240, bottom: 600, left: 480, right: 400 },
-          verticalAlign: VerticalAlign.TOP,
-          children: mainChildren,
-        }),
-      ],
-    })],
+    rows: [
+      // Row 1: Header
+      new TableRow({
+        children: [
+          new TableCell({
+            shading: { fill: NAVY_DARK, type: ShadingType.CLEAR },
+            borders: noBorders,
+            width: { size: SIDE_W, type: WidthType.DXA },
+            margins: { top: 500, bottom: 500, left: 400, right: 300 },
+            verticalAlign: VerticalAlign.BOTTOM,
+            children: [
+              ...(sectorLabel ? [new Paragraph({
+                spacing: { before: 0, after: 60 },
+                children: [new TextRun({ text: '★ ' + sectorLabel, size: 20, font: 'Calibri', color: GOLD })],
+              })] : []),
+              ...(location ? [new Paragraph({
+                spacing: { before: 0, after: 0 },
+                children: [new TextRun({ text: location, size: 17, font: 'Calibri', color: SILVER })],
+              })] : []),
+              // placeholder so cell isn't empty
+              new Paragraph({ children: [] }),
+            ],
+          }),
+          new TableCell({
+            shading: { fill: NAVY, type: ShadingType.CLEAR },
+            borders: noBorders,
+            width: { size: MAIN_W, type: WidthType.DXA },
+            margins: { top: 400, bottom: 400, left: 480, right: 500 },
+            children: [
+              new Paragraph({
+                spacing: { before: 0, after: 80 },
+                children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 64, font: 'Montserrat', color: WHITE })],
+              }),
+              new Paragraph({
+                spacing: { before: 0, after: 60 },
+                children: [new TextRun({ text: jobTitle, size: 24, font: 'Montserrat', color: TEAL, characterSpacing: 60 })],
+              }),
+              new Paragraph({
+                spacing: { before: 0, after: 0 },
+                border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: GOLD, space: 0 } },
+                children: [new TextRun({ text: '' })],
+              }),
+            ],
+          }),
+        ],
+      }),
+      // Row 2: Contact strip
+      new TableRow({
+        children: [
+          new TableCell({
+            shading: { fill: NAVY_LIGHT, type: ShadingType.CLEAR },
+            borders: noBorders,
+            width: { size: SIDE_W, type: WidthType.DXA },
+            margins: { top: 100, bottom: 100, left: 400, right: 300 },
+            children: [new Paragraph({
+              children: [new TextRun({ text: 'CONTACT', size: 15, font: 'Montserrat', color: GOLD, bold: true, characterSpacing: 40 })],
+            })],
+          }),
+          new TableCell({
+            shading: { fill: 'F5F0E8', type: ShadingType.CLEAR },
+            borders: { ...noBorders, left: { style: BorderStyle.SINGLE, size: 16, color: GOLD, space: 0 } },
+            width: { size: MAIN_W, type: WidthType.DXA },
+            margins: { top: 100, bottom: 100, left: 480, right: 300 },
+            children: [new Paragraph({
+              children: contactItems.map((item, i) =>
+                new TextRun({ text: (i === 0 ? '' : '    ') + item, size: 19, font: 'Calibri', color: CHARCOAL })
+              ),
+            })],
+          }),
+        ],
+      }),
+      // Row 3: Main two-column content (allowed to split across pages)
+      new TableRow({
+        cantSplit: false,
+        children: [
+          new TableCell({
+            shading: { fill: NAVY, type: ShadingType.CLEAR },
+            borders: noBorders,
+            width: { size: SIDE_W, type: WidthType.DXA },
+            margins: { top: 240, bottom: 600, left: 400, right: 300 },
+            verticalAlign: VerticalAlign.TOP,
+            children: sideChildren,
+          }),
+          new TableCell({
+            shading: { fill: CREAM, type: ShadingType.CLEAR },
+            borders: noBorders,
+            width: { size: MAIN_W, type: WidthType.DXA },
+            margins: { top: 240, bottom: 600, left: 480, right: 400 },
+            verticalAlign: VerticalAlign.TOP,
+            children: mainChildren,
+          }),
+        ],
+      }),
+    ],
   })
 
   // ── DOCUMENT ─────────────────────────────────────────────────────────────
@@ -606,7 +601,7 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
           })],
         }),
       },
-      children: [headerTable, contactStrip, twoCol],
+      children: [fullTable],
     }],
   })
 
