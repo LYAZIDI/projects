@@ -231,16 +231,23 @@ function extractExperience(text: string): ExperienceItem[] {
       bulletStartIdx = i + 1
     }
 
-    // Collect bullet descriptions from following lines
+    // Collect bullet descriptions from following lines (including multi-line bullets)
     const descLines: string[] = []
     let j = bulletStartIdx
-    while (j < lines.length && j < bulletStartIdx + 6) {
+    while (j < lines.length && j < bulletStartIdx + 20) {
       const next = lines[j]
       if (DATE_LINE_RX.test(next)) break
       DATE_RX.lastIndex = 0
       if (DATE_RX.test(next)) break
       DATE_RX.lastIndex = 0
-      if (/^[\s•\-–]+/.test(next)) descLines.push(clean(next))
+      const hdr = normalizeHeader(next)
+      if (SECTION_ANY.test(hdr) && hdr.length < 60) break
+      if (/^[•\-–▸■·]/.test(next)) {
+        descLines.push(clean(next))
+      } else if (descLines.length > 0 && next.length > 5 && !/^\s*$/.test(next)) {
+        // continuation line: append to last bullet (PDF wraps long lines)
+        descLines[descLines.length - 1] += ' ' + next.trim()
+      }
       j++
     }
 
@@ -249,7 +256,7 @@ function extractExperience(text: string): ExperienceItem[] {
         title: title.slice(0, 80),
         company: company.slice(0, 80),
         period,
-        description: descLines.join(' • ').slice(0, 200),
+        description: descLines.join(' • ').slice(0, 2000),
       })
     }
     if (results.length >= 5) break

@@ -143,12 +143,14 @@ function extractSummary(raw: string, skills: string[], yearsExp: number): string
   return `${exp} en ${top || 'son domaine'}. Disponible immédiatement.`
 }
 
+const NOT_LOCATION = /^(java|spring|angular|react|python|docker|linux|node|git|sql|php|ruby|swift|kotlin|azure|aws|javascript|typescript|golang|scala|mysql|mongodb|redis|jenkins|gitlab|github|maven|gradle|junit|agile|scrum|html|css|sass|vuejs?|nextjs?|nestjs?|express|django|flask|rails|laravel|symfony|kubernetes|terraform|ansible|nginx|apache|jira|confluence|figma|photoshop|illustrator|excel|word|powerpoint|outlook|teams|slack|zoom)$/i
+
 /** Extract location from rawText (city, region) */
 function extractLocation(raw: string): string {
   if (!raw) return ''
   const m = raw.match(/\b([A-ZÀ-Ü][a-zà-ü-]+(?:-[A-ZÀ-Ü][a-zà-ü-]+)*)\s*[|,]\s*([A-ZÀ-Ü][a-zà-ü-]+(?:-[A-ZÀ-Ü][a-zà-ü-]+)*)/m)
-  if (m) return `${m[1]}, ${m[2]}`
-  const m2 = raw.match(/\b(Paris|Lyon|Marseille|Bordeaux|Nantes|Lille|Casablanca|Rabat|Agadir|Marrakech|Montréal|Bruxelles)\b/i)
+  if (m && !NOT_LOCATION.test(m[1]) && !NOT_LOCATION.test(m[2])) return `${m[1]}, ${m[2]}`
+  const m2 = raw.match(/\b(Paris|Lyon|Marseille|Bordeaux|Nantes|Lille|Toulouse|Strasbourg|Rennes|Nice|Montpellier|Casablanca|Rabat|Agadir|Marrakech|Montréal|Bruxelles|Île-de-France|Essonne|Hauts-de-Seine|Seine-Saint-Denis|Val-de-Marne)\b/i)
   return m2?.[1] || ''
 }
 
@@ -548,6 +550,7 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
     width: { size: 100, type: WidthType.PERCENTAGE },
     columnWidths: [SIDE_W, MAIN_W],
     rows: [new TableRow({
+      cantSplit: false,
       children: [
         new TableCell({
           shading: { fill: NAVY, type: ShadingType.CLEAR },
