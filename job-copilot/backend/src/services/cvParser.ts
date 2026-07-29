@@ -8,10 +8,11 @@ import type { ParsedCV, ExperienceItem, EducationItem } from '../types'
 // Use flexible patterns (.{0,3}) to handle encoding corruption (e.g. é → Ǹ from PDF/DOCX garbling)
 
 // \b word boundary prevents matching "IntérimExpérience" or "CDI/Expérience" mid-word
-const SECTION_EXP    = /\bexp.{0,3}riences?.{0,20}(professionnelles?)?|\bparcours.{0,5}professionnel|\bemplois?\b/i
-const SECTION_EDU    = /\b(formations?|.{0,2}ducations?|dipl.{0,3}mes?|.{0,2}tudes?)\b/i
-const SECTION_SKILLS = /\b(comp.{0,3}tences?.{0,10}(cl.{0,2}s?)?|skills?)\b/i
-const SECTION_ANY    = /\b(exp.{0,3}rience|formation|comp.{0,3}tence|.{0,2}ducation|langues?|centres?|loisirs?|r.{0,3}f.{0,3}rences?|projets?|profil)\b/i
+// Anchored with ^ so "11 ans d'expérience" in a summary line won't trigger section detection
+const SECTION_EXP    = /^exp.{0,3}riences?|^parcours.{0,5}professionnel|^emplois?/i
+const SECTION_EDU    = /^(formations?|.{0,2}ducations?|dipl.{0,3}mes?|.{0,2}tudes?)/i
+const SECTION_SKILLS = /^(comp.{0,3}tences?.{0,10}(cl.{0,2}s?)?|skills?)/i
+const SECTION_ANY    = /^(exp.{0,3}riences?|formations?|comp.{0,3}tences?|.{0,2}ducations?|langues?|centres?|loisirs?|r.{0,3}f.{0,3}rences?|projets?|profil)/i
 
 // ─── Text extractor ───────────────────────────────────────────────────────────
 
@@ -40,17 +41,24 @@ export async function extractText(buffer: Buffer, mimetype: string): Promise<str
 // ─── Section splitter ─────────────────────────────────────────────────────────
 // Returns the text block between a section header and the next one
 
+/** Strip leading non-letter chars (numbers, bullets, punctuation) before section header matching */
+function normalizeHeader(line: string): string {
+  return line.replace(/^[\d\s.•\-–→▪▸■◆*#]+/, '').trim()
+}
+
 function getSection(text: string, headerRx: RegExp): string {
   const lines = text.split('\n')
   let start = -1
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
+    const hdr = normalizeHeader(line)
     if (start === -1) {
-      if (headerRx.test(line) && line.length < 60) { start = i + 1 }
+      if (headerRx.test(hdr) && hdr.length < 60) { start = i + 1 }
     } else {
       // Stop at next section header (short line matching any section keyword)
-      if (line.length < 60 && SECTION_ANY.test(line) && !headerRx.test(line)) {
+      const nextHdr = normalizeHeader(line)
+      if (nextHdr.length < 60 && SECTION_ANY.test(nextHdr) && !headerRx.test(nextHdr)) {
         return lines.slice(start, i).join('\n')
       }
     }
@@ -150,15 +158,29 @@ function extractSkills(text: string): string[] {
 
 // ─── Experience ───────────────────────────────────────────────────────────────
 
-const DATE_RX = /\b(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2})\s*[-–]\s*(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2}|présent|present|aujourd['']hui|current|en\s*cours)\b/gi
+// Month name prefix for dates (FR/EN)
+const MON = '(?:jan(?:v(?:ier)?|\\.)?|f[ée]v(?:rier|\\.)?|mars?|avr(?:il|\\.)?|mai|juin?|juil?(?:let|\\.)?|ao[uû]t?|sep(?:t(?:embre|\\.)?|\\.)?|oct(?:obre|\\.)?|nov(?:embre|\\.)?|d[eé]c(?:embre|\\.)?|january|february|march|april|may|june|july|august|september|october|november|december)'
 
-// Lines that look like education entries and should never be treated as experience
-const EDU_LINE_RX = /\b(bts|dut|bac\b|bac\+|master|licence|bachelor|mba|phd|doctorat|cap\b|ingénieur|formation|diplôme|diplome|certificat)\b/i
+// Matches a date range inline with title/company: "YYYY – YYYY", "07/2022 – présent", "Janvier 2022 – présent"
+const DATE_RX = new RegExp(
+  `\\b(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(20\\d{2}|19\\d{2})\\s*[-–—]\\s*(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(20\\d{2}|19\\d{2}|pr[eé]sent|present|aujourd['\\u2019]hui|current|en\\s*cours|maintenant)\\b`,
+  'gi'
+)
+
+// Matches a whole line that is purely a date: "Depuis 07/2022", "Janvier 2020 – présent"
+const DATE_LINE_RX = new RegExp(
+  `^\\s*(?:depuis\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2})` +
+  `|de\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2})\\s+[àa]u?\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2}|pr[eé]sent|present|en\\s*cours|current)` +
+  `|(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2})\\s*[-–—]\\s*(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2}|pr[eé]sent|present|aujourd['\\u2019]hui|current|en\\s*cours|maintenant))\\s*$`,
+  'i'
+)
+
+// Applied only to date lines to skip education entries (not to job titles or company names)
+const EDU_LINE_RX = /\b(bts|dut|bac\b|bac\+|master|licence|bachelor|mba|phd|doctorat|cap\b|formation|diplôme|diplome|certificat)\b/i
 
 function extractExperience(text: string): ExperienceItem[] {
   const results: ExperienceItem[] = []
 
-  // Only look inside the experience section
   const section = getSection(text, SECTION_EXP)
   if (!section) return []
 
@@ -166,34 +188,51 @@ function extractExperience(text: string): ExperienceItem[] {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    // Skip lines that look like education entries (BTS, DUT, BAC, Master, etc.)
+    // Skip date lines that belong to education (e.g. "Master 2018 – 2020")
     if (EDU_LINE_RX.test(line)) continue
+
+    const isDateLine = DATE_LINE_RX.test(line)
     DATE_RX.lastIndex = 0
-    if (!DATE_RX.test(line)) continue
-
+    const inlineDateMatch = !isDateLine ? line.match(DATE_RX) : null
     DATE_RX.lastIndex = 0
-    const period = line.match(DATE_RX)?.[0] || ''
 
-    // Everything on the same line after the date
-    let remainder = line.replace(period, '').replace(/^[\s•\-–:*·▪]+/, '').trim()
+    if (!isDateLine && !inlineDateMatch) continue
 
-    // Split title / company on " – " or " - "
-    const parts = remainder.split(/\s+[-–]\s+/)
-    let title   = clean(parts[0] || '')
-    let company = parts.length > 1 ? clean(parts.slice(1).join(' – ')) : ''
+    let period: string
+    let title = ''
+    let company = ''
+    let bulletStartIdx: number
 
-    // If title is empty, look at next line
-    if (!title && lines[i + 1]) {
-      title = clean(lines[i + 1])
+    if (isDateLine) {
+      // Multi-line format: company = previous line, title = next line
+      period = line.trim()
+      if (i > 0 && !DATE_LINE_RX.test(lines[i - 1])) {
+        company = clean(lines[i - 1])
+      }
+      if (i + 1 < lines.length && !DATE_LINE_RX.test(lines[i + 1])) {
+        title = clean(lines[i + 1])
+      }
+      bulletStartIdx = i + 2
+    } else {
+      // Inline format: date, title and company are on the same line
+      period = inlineDateMatch![0]
+      const remainder = line.replace(period, '').replace(/^[\s•\-–:*·▪]+/, '').trim()
+      const parts = remainder.split(/\s+[-–]\s+/)
+      title = clean(parts[0] || '')
+      company = parts.length > 1 ? clean(parts.slice(1).join(' – ')) : ''
+      if (!title && lines[i + 1]) title = clean(lines[i + 1])
+      bulletStartIdx = i + 1
     }
 
     // Collect bullet descriptions from following lines
     const descLines: string[] = []
-    let j = i + 1
-    while (j < lines.length && j < i + 6) {
+    let j = bulletStartIdx
+    while (j < lines.length && j < bulletStartIdx + 6) {
       const next = lines[j]
+      if (DATE_LINE_RX.test(next)) break
       DATE_RX.lastIndex = 0
-      if (DATE_RX.test(next)) break   // next job entry
+      if (DATE_RX.test(next)) break
+      DATE_RX.lastIndex = 0
       if (/^[\s•\-–]+/.test(next)) descLines.push(clean(next))
       j++
     }

@@ -43,59 +43,86 @@ interface RawExp {
   bullets: string[]
 }
 
-/** Extract experiences from raw text — handles "en cours", "présent", year–year */
+/** Extract experiences from raw text — handles inline dates, "Depuis MM/YYYY" and "De MM/YYYY à MM/YYYY" */
 function extractExpsFromRaw(raw: string): RawExp[] {
   if (!raw) return []
   const results: RawExp[] = []
   const lines = raw.split('\n').map(l => l.trim())
   let inSection = false
   let cur: RawExp | null = null
+  let skipNext = false
 
-  // Date: "2023 – 2025", "07/2022 – présent", "09/2019 – 07/2022"
-  const dateRx = /\b(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2})\s*[-–—]\s*(?:\d{1,2}[\/\-])?(20\d{2}|19\d{2}|en\s*cours|présent|present|maintenant|aujourd['']hui|current)\b/i
+  const MON = '(?:jan(?:v(?:ier)?\\.?)?|f[ée]v(?:rier\\.?)?|mars?|avr(?:il\\.?)?|mai|juin?|juil?(?:let\\.?)?|ao[uû]t?|sep(?:t(?:embre\\.?)?)?|oct(?:obre\\.?)?|nov(?:embre\\.?)?|d[eé]c(?:embre\\.?)?|january|february|march|april|may|june|july|august|september|october|november|december)'
 
-  for (const line of lines) {
+  // Date inline with title/company: "YYYY – YYYY", "07/2022 – présent", "Janvier 2022 – présent"
+  const dateRx = new RegExp(
+    `\\b(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(20\\d{2}|19\\d{2})\\s*[-–—]\\s*(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(20\\d{2}|19\\d{2}|en\\s*cours|pr[eé]sent|present|maintenant|aujourd['’]hui|current)\\b`,
+    'i'
+  )
+
+  // Whole-line date: "Depuis 07/2022", "Janvier 2020 – présent"
+  const dateLnRx = new RegExp(
+    `^\\s*(?:depuis\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2})` +
+    `|de\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2})\\s+[àa]u?\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2}|pr[eé]sent|present|en\\s*cours|current)` +
+    `|(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2})\\s*[-–—]\\s*(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2}|pr[eé]sent|present|en\\s*cours|current|maintenant|aujourd['’]hui))\\s*$`,
+    'i'
+  )
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     if (!line) continue
 
     if (!inSection) {
-      // Word boundary prevents matching "IntérimExpérience" mid-word
-      if (/\bexp.{0,3}rience/i.test(line) && line.length < 70) { inSection = true }
+      const hdr = line.replace(/^[\d\s.•\-–→▪▸■◆*#]+/, '').trim()
+      if (/^exp.{0,3}riences?|^parcours.{0,5}professionnel|^emplois?/i.test(hdr) && hdr.length < 70) { inSection = true }
       continue
     }
 
-    // End of section
-    if (/^(formation|comp.{0,3}tence|.{0,2}ducation|langues?|profil|centres?|loisirs?|r.{0,3}f.{0,3}rence)/i.test(line) && line.length < 70) break
+    const hdr = line.replace(/^[\d\s.•\-–→▪▸■◆*#]+/, '').trim()
+    if (/^(formation|comp.{0,3}tence|.{0,2}ducation|langues?|profil|centres?|loisirs?|r.{0,3}f.{0,3}rence)/i.test(hdr) && hdr.length < 70) break
 
-    const dateMatch = line.match(dateRx)
-    if (dateMatch) {
+    if (skipNext) { skipNext = false; continue }
+
+    if (dateLnRx.test(line)) {
+      // Multi-line format: date is its own line; company = prev non-empty, title = next non-empty
       if (cur?.title) results.push(cur)
-      const period = dateMatch[0]
-      // Strip everything before and including the date
-      const after = line.slice(line.indexOf(period) + period.length)
-        .replace(/^\s*[-–—→|•·\s]+/, '').trim()
-      // Also strip everything before the date (month names, etc.)
-      const before = line.slice(0, line.indexOf(period))
-        .replace(/[-–—→|•·\s]+$/, '').trim()
-
-      // "Title – Company (Location)" or "Title | Company"
-      const combined = [before, after].filter(Boolean).join(' ').trim()
-      const parts = combined.split(/\s+[-–—|]\s+/)
-      const locMatch = (parts[1] || '').match(/\(([^)]+)\)/)
-      cur = {
-        period,
-        title: parts[0]?.replace(/^[•▸■\s]+/, '').trim() || '',
-        company: (parts[1] || '').replace(/\s*\([^)]+\)/, '').trim(),
-        location: locMatch?.[1] || '',
-        bullets: [],
+      const period = line.trim()
+      let prevNonEmpty = ''
+      for (let k = i - 1; k >= 0; k--) {
+        if (lines[k].trim()) { prevNonEmpty = lines[k].trim(); break }
       }
-    } else if (cur) {
-      // Bullet lines
-      if (/^[-•▸■–·]/.test(line)) {
-        const b = line.replace(/^[-•▸■–·\s]+/, '').trim()
-        if (b.length > 2) cur.bullets.push(b)
-      } else if (!cur.company && line.length > 2 && line.length < 80 && !/\d{4}/.test(line)) {
-        // Possible company name on its own line
-        cur.company = line
+      let nextNonEmpty = ''
+      for (let k = i + 1; k < lines.length; k++) {
+        if (lines[k].trim()) { nextNonEmpty = lines[k].trim(); break }
+      }
+      cur = { period, title: nextNonEmpty, company: prevNonEmpty, location: '', bullets: [] }
+      skipNext = true
+    } else {
+      const dateMatch = line.match(dateRx)
+      if (dateMatch) {
+        if (cur?.title) results.push(cur)
+        const period = dateMatch[0]
+        const after = line.slice(line.indexOf(period) + period.length)
+          .replace(/^\s*[-–—→|•·\s]+/, '').trim()
+        const before = line.slice(0, line.indexOf(period))
+          .replace(/[-–—→|•·\s]+$/, '').trim()
+        const combined = [before, after].filter(Boolean).join(' ').trim()
+        const parts = combined.split(/\s+[-–—|]\s+/)
+        const locMatch = (parts[1] || '').match(/\(([^)]+)\)/)
+        cur = {
+          period,
+          title: parts[0]?.replace(/^[•▸■\s]+/, '').trim() || '',
+          company: (parts[1] || '').replace(/\s*\([^)]+\)/, '').trim(),
+          location: locMatch?.[1] || '',
+          bullets: [],
+        }
+      } else if (cur) {
+        if (/^[-•▸■–·]/.test(line)) {
+          const b = line.replace(/^[-•▸■–·\s]+/, '').trim()
+          if (b.length > 2) cur.bullets.push(b)
+        } else if (!cur.company && line.length > 2 && line.length < 80 && !/\d{4}/.test(line)) {
+          cur.company = line
+        }
       }
     }
   }
@@ -106,8 +133,12 @@ function extractExpsFromRaw(raw: string): RawExp[] {
 /** Extract profile summary paragraph from rawText */
 function extractSummary(raw: string, skills: string[], yearsExp: number): string {
   if (raw) {
-    const m = raw.match(/profil\s*(?:professionnel)?\s*\n+([\s\S]{30,500}?)(?:\n\n|\nExp|\nComp|\nFor)/i)
+    // Try dedicated "Profil" section first
+    const m = raw.match(/(?:^|\n)\s*profil\s*(?:professionnel)?\s*\n+([\s\S]{30,500}?)(?:\n\n|\nExp|\nComp|\nFor)/i)
     if (m) return m[1].replace(/\n/g, ' ').trim().slice(0, 400)
+    // Fallback: use the first substantial paragraph (likely the summary at top of CV)
+    const paras = raw.split(/\n{2,}/).map(p => p.replace(/\n/g, ' ').trim()).filter(p => p.length > 60)
+    if (paras.length > 0) return paras[0].slice(0, 400)
   }
   // Generate from data
   const top = (skills || []).slice(0, 3).join(', ')
@@ -254,7 +285,8 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
 
   const name = cv.name || 'Candidat'
   const location = extractLocation(rawText)
-  const summary = extractSummary(rawText, skills, cv.yearsExperience || 0)
+  // Use pre-computed summary (translated CV) if available, else extract from rawText
+  const summary = (cvAny.summary as string | undefined)?.trim() || extractSummary(rawText, skills, cv.yearsExperience || 0)
   const licences = extractLicences(rawText)
   const sector: string = cvAny.sector || 'generic'
   const sectorLabel = sector === 'transport' ? 'Transport & VTC'
@@ -265,9 +297,9 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
 
   // Experiences: rawText extraction for bullets, but cv.experience is authoritative for count
   const parsedExps = cv.experience || []
-  let exps = extractExpsFromRaw(rawText)
-  // If rawText extraction found fewer experiences than the parser, use parser as primary source
-  if (exps.length < parsedExps.length) {
+  // Prefer DB-stored experiences (populated by parser on upload); fall back to rawText extraction
+  let exps: RawExp[]
+  if (parsedExps.length > 0) {
     exps = parsedExps.map(e => ({
       period: e.period,
       title: e.title,
@@ -275,6 +307,9 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
       location: '',
       bullets: e.description ? e.description.split(' • ').filter(Boolean) : [],
     }))
+  } else {
+    exps = extractExpsFromRaw(rawText)
+    console.log(`[DOCX] extractExpsFromRaw found ${exps.length} exps from rawText (len=${rawText.length})`)
   }
 
   // Job title: from first experience, else from sector

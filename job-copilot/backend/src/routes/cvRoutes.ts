@@ -128,7 +128,7 @@ router.post('/generate-docx-translated', async (req, res) => {
           title: e.title,
           company: e.company,
           period: e.period,
-          description: (e.bullets || []).join('\n'),
+          description: (e.bullets || []).join(' • '),
         })),
         education: t.education || [],
         languages: t.languages || [],
@@ -167,6 +167,24 @@ router.post('/translate', async (req, res) => {
     console.error('[CV] Translation error:', err)
     return res.status(500).json({ error: err.message || 'Erreur lors de la traduction.' })
   }
+})
+
+// GET /api/cv/debug-profile — shows rawText sample + what extractExpsFromRaw finds
+router.get('/debug-profile', async (_req, res) => {
+  const profile = await loadProfile()
+  if (!profile) return res.json({ error: 'No profile' })
+  const raw: string = (profile.cv as any).rawText || ''
+  const lines = raw.split('\n').map((l: string, i: number) => `${i}: ${JSON.stringify(l)}`)
+  // Find lines around "expérience" keyword
+  const expIdx = lines.findIndex((l: string) => /exp.{0,3}rience/i.test(l))
+  const sample = lines.slice(Math.max(0, expIdx - 2), expIdx + 20).join('\n')
+  return res.json({
+    rawLen: raw.length,
+    expLineIdx: expIdx,
+    expSection: sample,
+    parsedExpCount: profile.cv.experience?.length ?? 0,
+    parsedExps: profile.cv.experience,
+  })
 })
 
 // POST /api/cv/debug — returns raw extracted text
