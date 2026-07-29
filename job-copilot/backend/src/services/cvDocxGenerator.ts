@@ -26,8 +26,10 @@ const CREAM      = 'FAFAFA'
 const A4_W     = 11906
 const A4_H     = 16838
 const MAR_V    = 720
-const SIDE_W   = Math.round(A4_W * 0.33)
-const MAIN_W   = A4_W - SIDE_W
+const MAR_H    = 200   // tiny horizontal margin to avoid Word 0-margin rendering bug
+const CONTENT_W = A4_W - 2 * MAR_H
+const SIDE_W   = Math.round(CONTENT_W * 0.33)
+const MAIN_W   = CONTENT_W - SIDE_W
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
 const none     = { style: BorderStyle.NONE, size: 0, color: 'auto' } as const
@@ -469,7 +471,7 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
   // ── SINGLE TABLE: header row + contact strip row + main content row ──────
   // Combining into one table prevents Word from pushing the content to page 2
   const fullTable = new Table({
-    width: { size: A4_W, type: WidthType.DXA },
+    width: { size: CONTENT_W, type: WidthType.DXA },
     columnWidths: [SIDE_W, MAIN_W],
     rows: [
       // Row 1: Header
@@ -586,7 +588,7 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
       properties: {
         page: {
           size: { width: A4_W, height: A4_H },
-          margin: { top: MAR_V, right: 0, bottom: MAR_V, left: 0 },
+          margin: { top: MAR_V, right: MAR_H, bottom: MAR_V, left: MAR_H },
         },
       },
       footers: {
