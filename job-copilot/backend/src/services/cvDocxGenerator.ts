@@ -470,7 +470,8 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
 
   const pageProps = {
     size: { width: A4_W, height: A4_H },
-    margin: { top: MAR_V, right: MAR_H, bottom: MAR_V, left: MAR_H },
+    // header:0 prevents Word from reserving extra space above the body text
+    margin: { top: MAR_V, right: MAR_H, bottom: MAR_V, left: MAR_H, header: 0, footer: 400 },
   }
 
   // ── SINGLE TABLE: 3 rows, single section ─────────────────────────────────
