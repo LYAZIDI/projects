@@ -544,9 +544,8 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
           }),
         ],
       }),
-      // Row 3: Main two-column content (allowed to split across pages)
+      // Row 3: Main two-column content — no cantSplit (default = row can split across pages)
       new TableRow({
-        cantSplit: false,
         children: [
           new TableCell({
             shading: { fill: NAVY, type: ShadingType.CLEAR },
