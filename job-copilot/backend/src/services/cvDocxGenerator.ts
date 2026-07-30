@@ -145,7 +145,7 @@ function extractSummary(raw: string, skills: string[], yearsExp: number): string
   return `${exp} en ${top || 'son domaine'}. Disponible immédiatement.`
 }
 
-const NOT_LOCATION = /^(java|spring|angular|react|python|docker|linux|node|git|sql|php|ruby|swift|kotlin|azure|aws|javascript|typescript|golang|scala|mysql|mongodb|redis|jenkins|gitlab|github|maven|gradle|junit|agile|scrum|html|css|sass|vuejs?|nextjs?|nestjs?|express|django|flask|rails|laravel|symfony|kubernetes|terraform|ansible|nginx|apache|jira|confluence|figma|photoshop|illustrator|excel|word|powerpoint|outlook|teams|slack|zoom)$/i
+const NOT_LOCATION = /^(java|spring|angular|react|python|docker|linux|node|git|sql|php|ruby|swift|kotlin|azure|aws|javascript|typescript|golang|scala|mysql|mongodb|redis|jenkins|gitlab|github|maven|gradle|junit|agile|scrum|html|css|sass|vuejs?|nextjs?|nestjs?|express|django|flask|rails|laravel|symfony|kubernetes|terraform|ansible|nginx|apache|jira|confluence|figma|photoshop|illustrator|excel|word|powerpoint|outlook|teams|slack|zoom|dart|flutter|oracle|plsql|bootstrap|jquery|webpack|babel|postman|swagger|bitbucket|trello|notion|uml|json|rest|api|jwt|oauth|jee|hibernate|thymeleaf|reactjs?|vuejs?|svelte|tailwind|linux|windows|android|ios|xcode|gradle|maven)$/i
 
 /** Extract location from rawText (city, region) */
 function extractLocation(raw: string): string {
@@ -468,13 +468,20 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
     }
   }
 
-  // ── SINGLE TABLE: header row + contact strip row + main content row ──────
-  // Combining into one table prevents Word from pushing the content to page 2
-  const fullTable = new Table({
+  const pageProps = {
+    size: { width: A4_W, height: A4_H },
+    margin: { top: MAR_V, right: MAR_H, bottom: MAR_V, left: MAR_H },
+  }
+
+  // ── SINGLE TABLE: 3 rows, single section ─────────────────────────────────
+  // Row 1: header (sector/location | name/title)
+  // Row 2: contact strip (CONTACT label | phone/email)
+  // Row 3: sidebar + main content — splits naturally across pages
+  const allTable = new Table({
     width: { size: CONTENT_W, type: WidthType.DXA },
     columnWidths: [SIDE_W, MAIN_W],
     rows: [
-      // Row 1: Header
+      // ── Row 1: header ────────────────────────────────────────────────────
       new TableRow({
         children: [
           new TableCell({
@@ -492,7 +499,6 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
                 spacing: { before: 0, after: 0 },
                 children: [new TextRun({ text: location, size: 17, font: 'Calibri', color: SILVER })],
               })] : []),
-              // placeholder so cell isn't empty
               new Paragraph({ children: [] }),
             ],
           }),
@@ -519,7 +525,7 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
           }),
         ],
       }),
-      // Row 2: Contact strip
+      // ── Row 2: contact strip ─────────────────────────────────────────────
       new TableRow({
         children: [
           new TableCell({
@@ -544,7 +550,7 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
           }),
         ],
       }),
-      // Row 3: Main two-column content — no cantSplit (default = row can split across pages)
+      // ── Row 3: sidebar + main content ────────────────────────────────────
       new TableRow({
         children: [
           new TableCell({
@@ -568,7 +574,17 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
     ],
   })
 
-  // ── DOCUMENT ─────────────────────────────────────────────────────────────
+  const footerEl = new Footer({
+    children: [new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({ text: 'JobCopilot  ·  ', size: 15, color: SILVER, font: 'Calibri' }),
+        new TextRun({ text: name, size: 15, color: TEAL, font: 'Calibri' }),
+        ...(cvAny.atsScore ? [new TextRun({ text: `  ·  Score ATS ${cvAny.atsScore}/100`, size: 15, color: SILVER, font: 'Calibri' })] : []),
+      ],
+    })],
+  })
+
   const doc = new Document({
     numbering: {
       config: [{
@@ -584,25 +600,9 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
       default: { document: { run: { font: 'Calibri', size: 19, color: CHARCOAL } } },
     },
     sections: [{
-      properties: {
-        page: {
-          size: { width: A4_W, height: A4_H },
-          margin: { top: MAR_V, right: MAR_H, bottom: MAR_V, left: MAR_H },
-        },
-      },
-      footers: {
-        default: new Footer({
-          children: [new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({ text: 'JobCopilot  ·  ', size: 15, color: SILVER, font: 'Calibri' }),
-              new TextRun({ text: name, size: 15, color: TEAL, font: 'Calibri' }),
-              ...(cvAny.atsScore ? [new TextRun({ text: `  ·  Score ATS ${cvAny.atsScore}/100`, size: 15, color: SILVER, font: 'Calibri' })] : []),
-            ],
-          })],
-        }),
-      },
-      children: [fullTable],
+      properties: { page: pageProps },
+      footers: { default: footerEl },
+      children: [allTable],
     }],
   })
 
