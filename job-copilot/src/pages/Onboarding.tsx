@@ -473,18 +473,20 @@ export default function Onboarding() {
               {translating ? 'Traduction en cours…' : 'Traduire mon CV en anglais'}
             </button>
 
-            <button
-              onClick={downloadCVDocx}
-              disabled={downloadingDocx}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors disabled:opacity-60"
-            >
-              {downloadingDocx ? (
-                <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Download size={16} />
-              )}
-              Télécharger mon CV Word (.docx)
-            </button>
+            {fileName.toLowerCase().endsWith('.pdf') && (
+              <button
+                onClick={downloadCVDocx}
+                disabled={downloadingDocx}
+                className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors disabled:opacity-60"
+              >
+                {downloadingDocx ? (
+                  <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Download size={16} />
+                )}
+                Télécharger mon CV Word (.docx)
+              </button>
+            )}
           </div>
         )}
 

@@ -33,7 +33,7 @@ const EMPTY_CARDS: Record<Status, AppCard[]> = {
 }
 
 export default function Dashboard() {
-  const { cv } = useCV()
+  const { cv, fileName } = useCV()
   const [cards, setCards] = useState(EMPTY_CARDS)
   const [search, setSearch] = useState('')
   const [dragCard, setDragCard] = useState<{ card: AppCard; from: Status } | null>(null)
@@ -209,17 +209,19 @@ export default function Dashboard() {
               )}
             </div>
             <div className="flex flex-col gap-1.5 shrink-0">
-              <button
-                onClick={downloadCVDocx}
-                disabled={downloadingDocx}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-medium hover:bg-indigo-100 transition-colors disabled:opacity-60"
-              >
-                {downloadingDocx
-                  ? <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                  : <Download size={12} />
-                }
-                CV Word
-              </button>
+              {fileName.toLowerCase().endsWith('.pdf') && (
+                <button
+                  onClick={downloadCVDocx}
+                  disabled={downloadingDocx}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-medium hover:bg-indigo-100 transition-colors disabled:opacity-60"
+                >
+                  {downloadingDocx
+                    ? <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                    : <Download size={12} />
+                  }
+                  CV Word
+                </button>
+              )}
               <Link to="/onboarding" className="btn-secondary text-xs text-center">Changer CV</Link>
             </div>
           </div>
