@@ -599,11 +599,25 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
     },
     styles: {
       default: { document: { run: { font: 'Calibri', size: 19, color: CHARCOAL } } },
+      // Override Normal paragraph style to have zero spacing so Word Online
+      // doesn't add visible blank space via its implicit pre-table paragraph
+      paragraphStyles: [{
+        id: 'Normal',
+        name: 'Normal',
+        run: {},
+        paragraph: { spacing: { before: 0, after: 0 } },
+      }],
     },
     sections: [{
       properties: { page: pageProps },
       footers: { default: footerEl },
-      children: [allTable],
+      // Explicit anchor paragraph before the table: Word Online inserts its own
+      // paragraph before the first table in a document; by providing ours with
+      // zero spacing, we prevent it from adding a visible blank area.
+      children: [
+        new Paragraph({ spacing: { before: 0, after: 0, line: 20, lineRule: 'exactly' }, children: [] }),
+        allTable,
+      ],
     }],
   })
 
