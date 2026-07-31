@@ -3,8 +3,8 @@
  * 100% dynamic — all content comes from the CV profile, nothing hardcoded.
  */
 import {
-  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
+  Document, Packer, Paragraph, TextRun,
+  AlignmentType, BorderStyle,
   LevelFormat, Footer,
 } from 'docx'
 import type { UserProfile } from './profileService'
@@ -23,17 +23,8 @@ const WHITE      = 'FFFFFF'
 const CREAM      = 'FAFAFA'
 
 // ─── Geometry ────────────────────────────────────────────────────────────────
-const A4_W     = 11906
-const A4_H     = 16838
-const MAR_V    = 720
-const MAR_H    = 200   // tiny horizontal margin to avoid Word 0-margin rendering bug
-const CONTENT_W = A4_W - 2 * MAR_H
-const SIDE_W   = Math.round(CONTENT_W * 0.33)
-const MAIN_W   = CONTENT_W - SIDE_W
-
-// ─── Shared ──────────────────────────────────────────────────────────────────
-const none     = { style: BorderStyle.NONE, size: 0, color: 'auto' } as const
-const noBorders = { top: none, bottom: none, left: none, right: none }
+const A4_W = 11906
+const A4_H = 16838
 
 // ─── Dynamic data extractors ─────────────────────────────────────────────────
 
@@ -187,37 +178,7 @@ function splitSkills(skills: string[]): { hard: string[]; soft: string[] } {
   return { hard, soft }
 }
 
-/** Skill bar: top 30% → 5 bars, mid 40% → 4, rest → 3 */
-function skillBarStr(index: number, total: number): string {
-  const lvl = index < total * 0.3 ? 5 : index < total * 0.65 ? 4 : 3
-  return '▓'.repeat(lvl) + '░'.repeat(5 - lvl)
-}
-
-// ─── Sidebar helpers ──────────────────────────────────────────────────────────
-
-function sideSection(label: string): Paragraph {
-  return new Paragraph({
-    spacing: { before: 280, after: 80 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: NAVY_MID, space: 4 } },
-    children: [new TextRun({ text: label.toUpperCase(), bold: true, size: 18, font: 'Montserrat', color: GOLD, characterSpacing: 60 })],
-  })
-}
-
-function sideLabelVal(label: string, value: string): Paragraph[] {
-  return [
-    new Paragraph({ spacing: { before: 10, after: 0 }, children: [new TextRun({ text: label, size: 16, font: 'Calibri', color: SILVER })] }),
-    new Paragraph({ spacing: { before: 0, after: 60 }, children: [new TextRun({ text: value, size: 19, font: 'Calibri', color: OFF_WHITE, bold: true })] }),
-  ]
-}
-
-function sideText(text: string): Paragraph {
-  return new Paragraph({
-    spacing: { before: 50, after: 30 },
-    children: [new TextRun({ text, size: 18, font: 'Calibri', color: OFF_WHITE })],
-  })
-}
-
-// ─── Main content helpers ─────────────────────────────────────────────────────
+// ─── Section / content helpers ───────────────────────────────────────────────
 
 function mainSection(label: string): Paragraph {
   return new Paragraph({
@@ -322,132 +283,114 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
   // Languages
   const langs: string[] = (cv.languages || []).length > 0 ? cv.languages : []
 
-  // ── CONTACT ITEMS ────────────────────────────────────────────────────────
-  const contactItems: string[] = []
-  if (cv.phone) contactItems.push('📞 ' + cv.phone)
-  if (cv.email) contactItems.push('✉ ' + cv.email)
+  // ── DOCUMENT BODY — linear text layout ───────────────────────────────────
+  const body: Paragraph[] = []
 
-  // ── SIDEBAR content ──────────────────────────────────────────────────────
-  const sideChildren: Paragraph[] = []
+  // Name
+  body.push(new Paragraph({
+    spacing: { before: 0, after: 80 },
+    children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 64, font: 'Montserrat', color: NAVY })],
+  }))
 
-  // Contact
-  sideChildren.push(sideSection('Contact'))
-  if (cv.phone) sideChildren.push(...sideLabelVal('Téléphone', cv.phone))
-  if (cv.email) sideChildren.push(...sideLabelVal('Email', cv.email))
-  if (location) sideChildren.push(...sideLabelVal('Localisation', location))
-
-  // Licences (only if found in CV)
-  if (licences.length > 0) {
-    sideChildren.push(sideSection('Permis & Licences'))
-    for (const lic of licences) {
-      sideChildren.push(new Paragraph({
-        spacing: { before: 60, after: 30 },
-        children: [
-          new TextRun({ text: '✓  ', size: 17, font: 'Calibri', color: TEAL }),
-          new TextRun({ text: lic, size: 18, font: 'Calibri', color: OFF_WHITE }),
-        ],
-      }))
-    }
-  }
-
-  // Hard skills with progress bars
-  if (hardSkills.length > 0) {
-    sideChildren.push(sideSection('Compétences'))
-    hardSkills.slice(0, 12).forEach((skill, i) => {
-      const bar = skillBarStr(i, hardSkills.length)
-      sideChildren.push(sideText(skill))
-      sideChildren.push(new Paragraph({
-        spacing: { before: 0, after: 48 },
-        children: [
-          new TextRun({ text: bar.slice(0, bar.indexOf('░') === -1 ? 5 : bar.indexOf('░')), size: 16, font: 'Calibri', color: TEAL }),
-          new TextRun({ text: bar.slice(bar.indexOf('░') === -1 ? 5 : bar.indexOf('░')), size: 16, font: 'Calibri', color: NAVY_LIGHT }),
-        ],
-      }))
-    })
-  }
-
-  // Languages
-  if (langs.length > 0) {
-    sideChildren.push(sideSection('Langues'))
-    const langLevels: Record<string, number> = { 'Français': 5, 'Anglais': 3, 'Arabe': 4, 'Espagnol': 3, 'Allemand': 3 }
-    for (const lang of langs) {
-      const lvl = langLevels[lang] ?? 3
-      sideChildren.push(new Paragraph({
-        spacing: { before: 60, after: 40 },
-        children: [
-          new TextRun({ text: lang + '  ', size: 19, font: 'Calibri', color: OFF_WHITE }),
-          new TextRun({ text: '●'.repeat(lvl) + '○'.repeat(5 - lvl), size: 16, font: 'Calibri', color: GOLD }),
-        ],
-      }))
-    }
-  }
-
-  // Soft skills as "Qualités" (only if found in CV skills)
-  if (softSkills.length > 0) {
-    sideChildren.push(sideSection('Qualités'))
-    for (const q of softSkills.slice(0, 6)) {
-      sideChildren.push(new Paragraph({
-        spacing: { before: 50, after: 40 },
-        children: [
-          new TextRun({ text: '◆  ', size: 15, font: 'Calibri', color: GOLD }),
-          new TextRun({ text: q, size: 18, font: 'Calibri', color: OFF_WHITE }),
-        ],
-      }))
-    }
-  }
-
-  // ATS Score
-  if (cvAny.atsScore) {
-    sideChildren.push(sideSection('Score ATS'))
-    sideChildren.push(new Paragraph({
-      spacing: { before: 60, after: 0 },
-      children: [
-        new TextRun({ text: `${cvAny.atsScore}`, bold: true, size: 52, font: 'Montserrat', color: TEAL }),
-        new TextRun({ text: '/100', size: 20, font: 'Calibri', color: SILVER }),
-      ],
+  // Title
+  if (jobTitle) {
+    body.push(new Paragraph({
+      spacing: { before: 0, after: 80 },
+      children: [new TextRun({ text: jobTitle, size: 26, font: 'Montserrat', color: TEAL, characterSpacing: 40 })],
     }))
   }
 
-  // ── MAIN content ─────────────────────────────────────────────────────────
-  const mainChildren: Paragraph[] = []
+  // Contact line: sector · location · phone · email  (gold underline)
+  const headerParts: string[] = []
+  if (sectorLabel) headerParts.push('★ ' + sectorLabel)
+  if (location)    headerParts.push(location)
+  if (cv.phone)    headerParts.push(cv.phone)
+  if (cv.email)    headerParts.push(cv.email)
+  body.push(new Paragraph({
+    spacing: { before: 0, after: 0 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: GOLD, space: 6 } },
+    children: headerParts.map((p, i) =>
+      new TextRun({ text: (i ? '   ·   ' : '') + p, size: 19, font: 'Calibri', color: CHARCOAL })
+    ),
+  }))
 
-  // Profile summary
-  mainChildren.push(mainSection('Profil Professionnel'))
-  mainChildren.push(new Paragraph({
-    spacing: { before: 80, after: 60 },
+  // Profile
+  body.push(mainSection('Profil Professionnel'))
+  body.push(new Paragraph({
+    spacing: { before: 60, after: 80 },
     children: [new TextRun({ text: summary, size: 20, font: 'Calibri', color: CHARCOAL, italics: true })],
   }))
 
   // Experience
-  mainChildren.push(mainSection('Expérience Professionnelle'))
+  body.push(mainSection('Expérience Professionnelle'))
   if (exps.length === 0) {
-    mainChildren.push(new Paragraph({
+    body.push(new Paragraph({
       children: [new TextRun({ text: 'Voir CV original pour les détails.', size: 19, font: 'Calibri', color: SILVER })],
     }))
   } else {
-    for (const exp of exps) mainChildren.push(...expBlock(exp, MAIN_W))
+    for (const exp of exps) body.push(...expBlock(exp, A4_W))
   }
 
   // Education
   if ((cv.education || []).length > 0) {
-    mainChildren.push(mainSection('Formation'))
+    body.push(mainSection('Formation'))
     for (const edu of (cv.education || []).slice(0, 4)) {
-      mainChildren.push(new Paragraph({
-        spacing: { before: 100, after: 20 },
+      body.push(new Paragraph({
+        spacing: { before: 80, after: 20 },
         children: [new TextRun({ text: edu.degree, bold: true, size: 20, font: 'Calibri', color: CHARCOAL })],
       }))
       const sub = [edu.school, edu.year].filter(Boolean).join(' · ')
       if (sub) {
-        mainChildren.push(new Paragraph({
-          spacing: { before: 0, after: 60 },
-          children: [
-            new TextRun({ text: '[', size: 17, font: 'Calibri', color: TEAL }),
-            new TextRun({ text: sub, size: 17, font: 'Calibri', color: TEAL }),
-            new TextRun({ text: ']', size: 17, font: 'Calibri', color: TEAL }),
-          ],
+        body.push(new Paragraph({
+          spacing: { before: 0, after: 40 },
+          children: [new TextRun({ text: sub, size: 18, font: 'Calibri', color: TEAL })],
         }))
       }
     }
+  }
+
+  // Skills
+  if (hardSkills.length > 0) {
+    body.push(mainSection('Compétences'))
+    body.push(new Paragraph({
+      spacing: { before: 60, after: 60 },
+      children: hardSkills.slice(0, 16).map((s, i) =>
+        new TextRun({ text: (i ? '  ·  ' : '') + s, size: 19, font: 'Calibri', color: CHARCOAL })
+      ),
+    }))
+  }
+
+  // Languages
+  if (langs.length > 0) {
+    body.push(mainSection('Langues'))
+    body.push(new Paragraph({
+      spacing: { before: 60, after: 60 },
+      children: langs.map((l, i) =>
+        new TextRun({ text: (i ? '  ·  ' : '') + l, size: 19, font: 'Calibri', color: CHARCOAL })
+      ),
+    }))
+  }
+
+  // Licences
+  if (licences.length > 0) {
+    body.push(mainSection('Permis & Licences'))
+    body.push(new Paragraph({
+      spacing: { before: 60, after: 60 },
+      children: licences.map((l, i) =>
+        new TextRun({ text: (i ? '  ·  ' : '') + l, size: 19, font: 'Calibri', color: CHARCOAL })
+      ),
+    }))
+  }
+
+  // Soft skills / qualities
+  if (softSkills.length > 0) {
+    body.push(mainSection('Qualités'))
+    body.push(new Paragraph({
+      spacing: { before: 60, after: 60 },
+      children: softSkills.slice(0, 6).map((q, i) =>
+        new TextRun({ text: (i ? '  ·  ' : '') + q, size: 19, font: 'Calibri', color: CHARCOAL })
+      ),
+    }))
   }
 
   // Interests
@@ -458,11 +401,11 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
       .filter(l => l.length > 1 && l.length < 40)
       .slice(0, 6)
     if (items.length) {
-      mainChildren.push(mainSection("Centres d'intérêt"))
-      mainChildren.push(new Paragraph({
-        spacing: { before: 80 },
+      body.push(mainSection("Centres d'intérêt"))
+      body.push(new Paragraph({
+        spacing: { before: 60, after: 60 },
         children: items.map((item, i) =>
-          new TextRun({ text: (i === 0 ? '' : '   ·   ') + item, size: 19, font: 'Calibri', color: CHARCOAL })
+          new TextRun({ text: (i ? '   ·   ' : '') + item, size: 19, font: 'Calibri', color: CHARCOAL })
         ),
       }))
     }
@@ -470,110 +413,8 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
 
   const pageProps = {
     size: { width: A4_W, height: A4_H },
-    // header:0 prevents Word from reserving extra space above the body text
-    margin: { top: MAR_V, right: MAR_H, bottom: MAR_V, left: MAR_H, header: 0, footer: 400 },
+    margin: { top: 1440, right: 1800, bottom: 1440, left: 1800, header: 0, footer: 400 },
   }
-
-  // ── SINGLE TABLE: 3 rows, single section ─────────────────────────────────
-  // Row 1: header (sector/location | name/title)
-  // Row 2: contact strip (CONTACT label | phone/email)
-  // Row 3: sidebar + main content — splits naturally across pages
-  const allTable = new Table({
-    width: { size: CONTENT_W, type: WidthType.DXA },
-    columnWidths: [SIDE_W, MAIN_W],
-    rows: [
-      // ── Row 1: header ────────────────────────────────────────────────────
-      new TableRow({
-        children: [
-          new TableCell({
-            shading: { fill: NAVY_DARK, type: ShadingType.CLEAR },
-            borders: noBorders,
-            width: { size: SIDE_W, type: WidthType.DXA },
-            margins: { top: 500, bottom: 500, left: 400, right: 300 },
-            verticalAlign: VerticalAlign.BOTTOM,
-            children: [
-              ...(sectorLabel ? [new Paragraph({
-                spacing: { before: 0, after: 60 },
-                children: [new TextRun({ text: '★ ' + sectorLabel, size: 20, font: 'Calibri', color: GOLD })],
-              })] : []),
-              ...(location ? [new Paragraph({
-                spacing: { before: 0, after: 0 },
-                children: [new TextRun({ text: location, size: 17, font: 'Calibri', color: SILVER })],
-              })] : []),
-              new Paragraph({ children: [] }),
-            ],
-          }),
-          new TableCell({
-            shading: { fill: NAVY, type: ShadingType.CLEAR },
-            borders: noBorders,
-            width: { size: MAIN_W, type: WidthType.DXA },
-            margins: { top: 400, bottom: 400, left: 480, right: 500 },
-            children: [
-              new Paragraph({
-                spacing: { before: 0, after: 80 },
-                children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 64, font: 'Montserrat', color: WHITE })],
-              }),
-              new Paragraph({
-                spacing: { before: 0, after: 60 },
-                children: [new TextRun({ text: jobTitle, size: 24, font: 'Montserrat', color: TEAL, characterSpacing: 60 })],
-              }),
-              new Paragraph({
-                spacing: { before: 0, after: 0 },
-                border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: GOLD, space: 0 } },
-                children: [new TextRun({ text: '' })],
-              }),
-            ],
-          }),
-        ],
-      }),
-      // ── Row 2: contact strip ─────────────────────────────────────────────
-      new TableRow({
-        children: [
-          new TableCell({
-            shading: { fill: NAVY_LIGHT, type: ShadingType.CLEAR },
-            borders: noBorders,
-            width: { size: SIDE_W, type: WidthType.DXA },
-            margins: { top: 100, bottom: 100, left: 400, right: 300 },
-            children: [new Paragraph({
-              children: [new TextRun({ text: 'CONTACT', size: 15, font: 'Montserrat', color: GOLD, bold: true, characterSpacing: 40 })],
-            })],
-          }),
-          new TableCell({
-            shading: { fill: 'F5F0E8', type: ShadingType.CLEAR },
-            borders: { ...noBorders, left: { style: BorderStyle.SINGLE, size: 16, color: GOLD, space: 0 } },
-            width: { size: MAIN_W, type: WidthType.DXA },
-            margins: { top: 100, bottom: 100, left: 480, right: 300 },
-            children: [new Paragraph({
-              children: contactItems.map((item, i) =>
-                new TextRun({ text: (i === 0 ? '' : '    ') + item, size: 19, font: 'Calibri', color: CHARCOAL })
-              ),
-            })],
-          }),
-        ],
-      }),
-      // ── Row 3: sidebar + main content ────────────────────────────────────
-      new TableRow({
-        children: [
-          new TableCell({
-            shading: { fill: NAVY, type: ShadingType.CLEAR },
-            borders: noBorders,
-            width: { size: SIDE_W, type: WidthType.DXA },
-            margins: { top: 240, bottom: 600, left: 400, right: 300 },
-            verticalAlign: VerticalAlign.TOP,
-            children: sideChildren,
-          }),
-          new TableCell({
-            shading: { fill: CREAM, type: ShadingType.CLEAR },
-            borders: noBorders,
-            width: { size: MAIN_W, type: WidthType.DXA },
-            margins: { top: 240, bottom: 600, left: 480, right: 400 },
-            verticalAlign: VerticalAlign.TOP,
-            children: mainChildren,
-          }),
-        ],
-      }),
-    ],
-  })
 
   const footerEl = new Footer({
     children: [new Paragraph({
@@ -587,37 +428,17 @@ export async function generateCVDocx(profile: UserProfile): Promise<Buffer> {
   })
 
   const doc = new Document({
-    numbering: {
-      config: [{
-        reference: 'bullets',
-        levels: [{
-          level: 0, format: LevelFormat.BULLET, text: '■',
-          alignment: AlignmentType.LEFT,
-          style: { paragraph: { indent: { left: 360, hanging: 200 } } },
-        }],
-      }],
-    },
     styles: {
       default: { document: { run: { font: 'Calibri', size: 19, color: CHARCOAL } } },
-      // Override Normal paragraph style to have zero spacing so Word Online
-      // doesn't add visible blank space via its implicit pre-table paragraph
       paragraphStyles: [{
-        id: 'Normal',
-        name: 'Normal',
-        run: {},
+        id: 'Normal', name: 'Normal', run: {},
         paragraph: { spacing: { before: 0, after: 0 } },
       }],
     },
     sections: [{
       properties: { page: pageProps },
       footers: { default: footerEl },
-      // Explicit anchor paragraph before the table: Word Online inserts its own
-      // paragraph before the first table in a document; by providing ours with
-      // zero spacing, we prevent it from adding a visible blank area.
-      children: [
-        new Paragraph({ spacing: { before: 0, after: 0, line: 20, lineRule: 'exactly' }, children: [] }),
-        allTable,
-      ],
+      children: body,
     }],
   })
 
