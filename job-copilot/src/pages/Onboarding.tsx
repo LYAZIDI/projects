@@ -170,10 +170,11 @@ export default function Onboarding() {
       const res = await fetch(`${API}/api/cv/upload`, { method: 'POST', body: formData })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur serveur')
+      // Update localStorage immediately so sync-on-mount can't overwrite the new profile
+      setCV(data.parsed, file.name)
       // Let animation run at least 2 seconds before showing results
       setTimeout(() => {
         setParsed(data.parsed)
-        setCV(data.parsed, file.name)
       }, 2000)
     } catch (err: any) {
       setAnalysisStep(-1)

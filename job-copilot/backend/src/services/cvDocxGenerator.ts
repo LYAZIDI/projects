@@ -5,7 +5,7 @@
 import {
   Document, Packer, Paragraph, TextRun,
   AlignmentType, BorderStyle,
-  LevelFormat, Footer,
+  Footer,
 } from 'docx'
 import type { UserProfile } from './profileService'
 

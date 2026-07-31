@@ -168,11 +168,13 @@ const DATE_RX = new RegExp(
   'gi'
 )
 
-// Matches a whole line that is purely a date: "Depuis 07/2022", "Janvier 2020 – présent"
+// Matches a whole line that is purely a date: "Depuis 07/2022", "Janvier 2020 – présent",
+// "novembre, 2023 – Aujourd'hui" (comma after month), "mars_septembre 2023" (underscore range)
 const DATE_LINE_RX = new RegExp(
   `^\\s*(?:depuis\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2})` +
   `|de\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2})\\s+[àa]u?\\s+(?:${MON}\\s+)?(?:\\d{1,2}\\/)?(?:20\\d{2}|19\\d{2}|pr[eé]sent|present|en\\s*cours|current)` +
-  `|(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2})\\s*[-–—]\\s*(?:${MON}\\s+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2}|pr[eé]sent|present|aujourd['\\u2019]hui|current|en\\s*cours|maintenant))\\s*$`,
+  `|(?:${MON}[,\\s]+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2})\\s*[-–—]\\s*(?:${MON}[,\\s]+)?(?:\\d{1,2}[\\/-])?(?:20\\d{2}|19\\d{2}|pr[eé]sent|present|aujourd['\\u2019]hui|current|en\\s*cours|maintenant)` +
+  `|(?:${MON})[_-](?:${MON})\\s+(?:20\\d{2}|19\\d{2}))\\s*$`,
   'i'
 )
 
@@ -205,19 +207,33 @@ function extractExperience(text: string): ExperienceItem[] {
     let bulletStartIdx: number
 
     if (isDateLine) {
-      // Multi-line format: date is its own line; company = previous lines (up to 2 for long names), title = next line
+      // Multi-line format: date is its own line
       period = line.trim()
-      // Collect up to 2 lines backwards as company name (handles "ASIS - BRUNEAU - SAINT\nETIENNE")
+      // Look backward for company: line must start with a capital (company names do)
+      // and be short (< 60 chars). Long/lowercase lines are experience content, not company names.
       const companyParts: string[] = []
       for (let k = i - 1; k >= 0 && k >= i - 2; k--) {
         const prev = lines[k]
         if (!prev || DATE_LINE_RX.test(prev) || /^[-•▸■]/.test(prev)) break
-        if (prev.length > 80) break
+        if (prev.length > 60) break
+        if (!/^[A-ZÁÉÈÊËÀÂÙÛÜÔÎÏÇŒÆ]/.test(prev)) break  // must start with capital
         companyParts.unshift(prev)
       }
       company = clean(companyParts.join(' '))
+      // Title = next non-date line. If no company found, try to split "Title – Company".
       if (i + 1 < lines.length && !DATE_LINE_RX.test(lines[i + 1])) {
-        title = clean(lines[i + 1])
+        const nextLine = clean(lines[i + 1])
+        if (!company) {
+          const dashParts = nextLine.split(/\s+[-–—]\s+/)
+          if (dashParts.length >= 2) {
+            title = dashParts[0].trim()
+            company = dashParts.slice(1).join(' – ').replace(/\s*\([^)]*\)/g, '').trim()
+          } else {
+            title = nextLine
+          }
+        } else {
+          title = nextLine
+        }
       }
       bulletStartIdx = i + 2
     } else {
@@ -244,9 +260,15 @@ function extractExperience(text: string): ExperienceItem[] {
       if (SECTION_ANY.test(hdr) && hdr.length < 60) break
       if (/^[•\-–▸■·]/.test(next)) {
         descLines.push(clean(next))
-      } else if (descLines.length > 0 && next.length > 5 && !/^\s*$/.test(next)) {
-        // continuation line: append to last bullet (PDF wraps long lines)
-        descLines[descLines.length - 1] += ' ' + next.trim()
+      } else if (next.length > 5 && !/^\s*$/.test(next)) {
+        const startsWithCapital = /^[A-ZÁÉÈÊËÀÂÙÛÜÔÎÏÇŒÆ]/.test(next)
+        if (descLines.length > 0 && !startsWithCapital) {
+          // lowercase start = PDF-wrapped continuation of previous line
+          descLines[descLines.length - 1] += ' ' + next.trim()
+        } else if (startsWithCapital) {
+          // capital start = plain-text bullet (no marker, common in some PDF exports)
+          descLines.push(clean(next))
+        }
       }
       j++
     }
@@ -267,21 +289,48 @@ function extractExperience(text: string): ExperienceItem[] {
 
 // ─── Education ────────────────────────────────────────────────────────────────
 
-const EDU_KEYWORDS = ['master','licence','bachelor','bts','dut','bac','mba','ingénieur','engineer','phd','doctorat','formation','diplôme','degree','certificat','vtc','cap','bp ']
+const EDU_KEYWORDS = ['master','licence','bachelor','bts','dut','bac','mba','ingénieur','ingenieur','engineer','phd','doctorat','formation','diplôme','diplome','degree','certificat','vtc','cap','bp ']
 
 function extractEducation(text: string): EducationItem[] {
   const results: EducationItem[] = []
   const section = getSection(text, SECTION_EDU) || text
   const lines = section.split('\n').map(l => l.trim()).filter(Boolean)
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     const lower = line.toLowerCase()
     if (!EDU_KEYWORDS.some(k => lower.includes(k))) continue
 
-    const yearMatch = line.match(/\b(20\d{2}|19\d{2})\b/)
-    const degree = clean(line.replace(/\d{4}[-–]\d{4}|\d{4}\s*:/g, '')).slice(0, 100)
+    // Collect multi-line degree: append next line if it has no year and no EDU keyword
+    let degreeFull = line
+    const nextLine = lines[i + 1]
+    if (nextLine && !/\b(20\d{2}|19\d{2})\b/.test(nextLine) && nextLine.length < 70
+        && !EDU_KEYWORDS.some(k => nextLine.toLowerCase().includes(k))) {
+      degreeFull += ' ' + nextLine
+    }
+
+    // Year: search current line and up to 3 surrounding lines; take last year found (graduation year)
+    let yearStr = ''
+    for (let k = Math.max(0, i - 2); k <= Math.min(lines.length - 1, i + 3); k++) {
+      const ym = lines[k]?.match(/\b(20\d{2}|19\d{2})\b/g)
+      if (ym) { yearStr = ym[ym.length - 1]; break }
+    }
+
+    // School: look backward 1-3 lines for a short line with no year and no EDU keyword
+    let school = ''
+    for (let sk = i - 1; sk >= Math.max(0, i - 3); sk--) {
+      const prev = lines[sk]
+      const prevClean = prev.replace(/\b(20\d{2})\s*[-–]?\s*(20\d{2})?\s*/g, '').replace(/[-–\s]+$/, '').trim()
+      if (prevClean.length > 1 && prevClean.length < 80
+          && !EDU_KEYWORDS.some(k => prevClean.toLowerCase().includes(k))) {
+        school = prevClean
+        break
+      }
+    }
+
+    const degree = clean(degreeFull.replace(/\d{4}[-–]\d{4}|\d{4}\s*:/g, '')).slice(0, 150)
     if (degree.length > 3) {
-      results.push({ degree, school: '', year: yearMatch ? yearMatch[0] : '' })
+      results.push({ degree, school, year: yearStr })
       if (results.length >= 4) break
     }
   }
