@@ -17,7 +17,7 @@ export default function App() {
       <SubscriptionProvider>
         <NotificationsProvider>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<Onboarding />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/jobs" element={<Jobs />} />
