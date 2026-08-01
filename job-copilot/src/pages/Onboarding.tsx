@@ -213,6 +213,7 @@ export default function Onboarding() {
           remote: remoteOnly,
         }),
       })
+      if (res.status === 402) { setShowPaywall(true); return }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur recherche')
       // Stocker le nombre d'offres pour l'affichage step 3
