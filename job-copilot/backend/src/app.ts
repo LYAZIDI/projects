@@ -8,6 +8,7 @@ import jobRoutes from './routes/jobRoutes'
 import notificationRoutes from './routes/notificationRoutes'
 import atsRoutes from './routes/atsRoutes'
 import discoveryRoutes from './routes/discoveryRoutes'
+import subscriptionRoutes from './routes/subscriptionRoutes'
 
 dotenv.config({ path: path.join(process.cwd(), '.env') })
 
@@ -32,6 +33,14 @@ app.use(cors({
   credentials: true,
 }))
 
+// Raw body capture for Stripe webhook signature verification
+app.use((req, _res, next) => {
+  let data = ''
+  req.on('data', chunk => { data += chunk })
+  req.on('end', () => { (req as any).rawBody = data })
+  next()
+})
+
 app.use(express.json({ limit: '5mb' }))
 
 app.use('/api/cv',            cvRoutes)
@@ -39,6 +48,7 @@ app.use('/api/jobs',          jobRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/ats',           atsRoutes)
 app.use('/api/discovery',     discoveryRoutes)
+app.use('/api/subscription',  subscriptionRoutes)
 
 app.get('/api/health', (_req, res) => {
   res.json({

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import MatchBadge from '../components/MatchBadge'
 import { useCV } from '../context/CVContext'
+import { useSubscription } from '../context/SubscriptionContext'
+import Paywall from '../components/Paywall'
 import { TrendingUp, Send, Calendar, Target, ChevronRight, FileText, Plus, Search, X, GripVertical, Upload, Star, Zap, Trophy, Sparkles, MapPin, Banknote, Download } from 'lucide-react'
 
 const API = ''
@@ -34,6 +36,7 @@ const EMPTY_CARDS: Record<Status, AppCard[]> = {
 
 export default function Dashboard() {
   const { cv, fileName } = useCV()
+  const { isSubscribed, loading: subLoading } = useSubscription()
   const [cards, setCards] = useState(EMPTY_CARDS)
   const [search, setSearch] = useState('')
   const [dragCard, setDragCard] = useState<{ card: AppCard; from: Status } | null>(null)
@@ -141,6 +144,15 @@ export default function Dashboard() {
   }
 
   const firstName = cv?.name?.split(' ')[0] ?? null
+
+  if (!subLoading && !isSubscribed) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <Paywall />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Upload, CheckCircle, FileText, Zap, ChevronRight, AlertCircle, Download, Globe } from 'lucide-react'
 import { useCV } from '../context/CVContext'
+import { useSubscription } from '../context/SubscriptionContext'
 import CVTranslationPreview, { TranslatedCV } from '../components/CVTranslationPreview'
+import Paywall from '../components/Paywall'
 
 const API = ''
 
@@ -35,6 +37,8 @@ interface ParsedCV {
 
 export default function Onboarding() {
   const { setCV } = useCV()
+  const { isSubscribed } = useSubscription()
+  const [showPaywall, setShowPaywall] = useState(false)
   const [step, setStep] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [analysisStep, setAnalysisStep] = useState(-1)
@@ -554,7 +558,7 @@ export default function Onboarding() {
             )}
 
             <button
-              onClick={launchJobSearch}
+              onClick={() => isSubscribed ? launchJobSearch() : setShowPaywall(true)}
               disabled={searching || !jobTitle.trim()}
               className="btn-primary w-full mt-6 flex items-center justify-center gap-2 disabled:opacity-60"
             >
@@ -567,6 +571,8 @@ export default function Onboarding() {
                 <>Trouver mes offres <ChevronRight size={16} /></>
               )}
             </button>
+
+            {showPaywall && <Paywall onClose={() => setShowPaywall(false)} />}
           </div>
         )}
 

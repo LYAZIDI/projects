@@ -3,6 +3,7 @@ import { getAllStoredJobs, dbInsertManyJobs, dbCountJobs } from '../services/job
 import { searchJobsWithGemini, type SearchCriteria } from '../services/jobSearchAgent'
 import { notifyHighMatch } from '../services/notificationService'
 import { loadProfile } from '../services/profileService'
+import { requireSubscription } from '../middleware/requireSubscription'
 import { scoreJob } from '../services/matchingEngine'
 import pool from '../db/pgClient'
 
@@ -10,7 +11,7 @@ const router = Router()
 
 // POST /api/discovery/run
 // Body: { jobTitle, location, salary, contractType, remote, skills? }
-router.post('/run', async (req, res) => {
+router.post('/run', requireSubscription, async (req, res) => {
   try {
     const profile = await loadProfile()
 
@@ -73,7 +74,7 @@ router.get('/status', async (_req, res) => {
 })
 
 // POST /api/discovery/clear — vide et relance
-router.post('/clear', async (req, res) => {
+router.post('/clear', requireSubscription, async (req, res) => {
   try {
     await pool.query('DELETE FROM jobs')
     console.log('[Discovery] Table jobs vidée')

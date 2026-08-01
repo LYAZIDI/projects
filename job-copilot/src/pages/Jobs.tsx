@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import MatchBadge from '../components/MatchBadge'
 import { useCV } from '../context/CVContext'
+import { useSubscription } from '../context/SubscriptionContext'
+import Paywall from '../components/Paywall'
 import {
   Search, MapPin, Banknote, Wifi, Filter, ChevronRight,
   Briefcase, Zap, CheckCircle, XCircle, Upload, Loader, Star, TrendingUp, AlertCircle, Lightbulb, Target,
@@ -86,6 +88,7 @@ interface APIStatus {
 
 export default function Jobs() {
   const { cv } = useCV()
+  const { isSubscribed, loading: subLoading } = useSubscription()
   const [result, setResult] = useState<MatchedResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -228,6 +231,15 @@ export default function Jobs() {
         <div className="space-y-2">
           {filtered.map((job, idx) => renderJobCard(job, idx))}
         </div>
+      </div>
+    )
+  }
+
+  if (!subLoading && !isSubscribed) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <Paywall />
       </div>
     )
   }
