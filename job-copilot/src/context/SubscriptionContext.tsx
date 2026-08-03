@@ -6,8 +6,9 @@ const API = ''
 interface SubscriptionCtx {
   isSubscribed: boolean
   loading: boolean
-  startCheckout: () => Promise<void>
-  checkStatus: () => Promise<void>
+  startCheckout: (email: string) => Promise<void>
+  checkStatus: (email?: string) => Promise<void>
+  cvEmail: string
 }
 
 const SubscriptionContext = createContext<SubscriptionCtx>({
@@ -15,6 +16,7 @@ const SubscriptionContext = createContext<SubscriptionCtx>({
   loading: true,
   startCheckout: async () => {},
   checkStatus: async () => {},
+  cvEmail: '',
 })
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
@@ -22,8 +24,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  async function checkStatus() {
-    const email = cv?.email
+  async function checkStatus(emailOverride?: string) {
+    const email = emailOverride ?? cv?.email
     if (!email) { setLoading(false); return }
     try {
       const res = await fetch(`${API}/api/subscription/status?email=${encodeURIComponent(email)}`)
@@ -38,12 +40,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { checkStatus() }, [cv?.email])
 
-  async function startCheckout() {
-    const email = cv?.email
-    if (!email) {
-      alert('Votre CV ne contient pas d\'email. Ajoutez votre email dans le CV et ré-uploadez-le.')
-      return
-    }
+  async function startCheckout(email: string) {
     try {
       const res = await fetch(`${API}/api/subscription/checkout`, {
         method: 'POST',
@@ -62,7 +59,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SubscriptionContext.Provider value={{ isSubscribed, loading, startCheckout, checkStatus }}>
+    <SubscriptionContext.Provider value={{ isSubscribed, loading, startCheckout, checkStatus, cvEmail: cv?.email ?? '' }}>
       {children}
     </SubscriptionContext.Provider>
   )
