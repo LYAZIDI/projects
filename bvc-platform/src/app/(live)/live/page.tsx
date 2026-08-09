@@ -585,7 +585,7 @@ function DroitsTab() {
               return (
                 <tr key={d.symbol} style={{ borderBottom: `1px solid ${C.border}` }}>
                   <td style={{ padding: '10px 12px' }}>
-                    <a href={BVC_PAGES.derives} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700, color: C.blue, textDecoration: 'none', fontSize: 13 }}>{d.label}</a>
+                    <a href={BVC_PAGES.droits} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700, color: C.blue, textDecoration: 'none', fontSize: 13 }}>{d.label}</a>
                     {d.emitter && <div style={{ fontSize: 11, color: C.muted }}>{d.emitter}</div>}
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'center' }}>
