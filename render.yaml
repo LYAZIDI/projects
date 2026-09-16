@@ -44,21 +44,11 @@ services:
         fromDatabase:
           name: shopify-clone-db
           property: password
-      - key: REDIS_HOST
+      - key: REDIS_URL
         fromService:
           type: keyvalue
           name: shopify-clone-redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: keyvalue
-          name: shopify-clone-redis
-          property: port
-      - key: REDIS_PASSWORD
-        fromService:
-          type: keyvalue
-          name: shopify-clone-redis
-          property: password
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       # Set manually in the Render dashboard once you have real values:
