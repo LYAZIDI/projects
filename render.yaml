@@ -1,0 +1,76 @@
+# Render Blueprint for the shopify-clone backend.
+# This repo is a monorepo; rootDir/dockerfilePath/dockerContext scope the
+# service to shopify-clone/backend so Render only builds/redeploys on
+# changes there.
+databases:
+  - name: shopify-clone-db
+    plan: free
+    databaseName: shopify_clone
+    user: shopify
+
+services:
+  - type: keyvalue
+    name: shopify-clone-redis
+    plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+
+  - type: web
+    name: shopify-clone-backend
+    runtime: docker
+    plan: free
+    rootDir: shopify-clone/backend
+    dockerfilePath: ./shopify-clone/backend/Dockerfile
+    dockerContext: ./shopify-clone/backend
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: shopify-clone-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: shopify-clone-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: shopify-clone-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: shopify-clone-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: shopify-clone-db
+          property: password
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: shopify-clone-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: shopify-clone-redis
+          property: port
+      - key: REDIS_PASSWORD
+        fromService:
+          type: keyvalue
+          name: shopify-clone-redis
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      # Set manually in the Render dashboard once you have real values:
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Update this after the Vercel frontend is deployed, e.g.
+      # https://shopify-clone-frontend.vercel.app
+      - key: APP_CORS_ALLOWED_ORIGINS
+        sync: false

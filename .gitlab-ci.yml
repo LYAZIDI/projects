@@ -1,0 +1,86 @@
+# CI/CD for shopify-clone only. This repo is a monorepo containing several
+# unrelated projects, so every job is scoped with `rules: changes:` to only
+# run when files under shopify-clone/ (or this file) are touched.
+#
+# Prerequisite: this pipeline assumes the repo lives on GitLab (or is mirrored
+# there) with the built-in Container Registry enabled for the project — that's
+# what CI_REGISTRY_IMAGE / CI_REGISTRY_USER / CI_REGISTRY_PASSWORD below refer to.
+
+stages:
+  - build
+  - docker
+
+.shopify_rules: &shopify_rules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - "shopify-clone/**/*"
+        - ".gitlab-ci.yml"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - "shopify-clone/**/*"
+        - ".gitlab-ci.yml"
+
+backend:
+  stage: build
+  image: maven:3.9-eclipse-temurin-21
+  <<: *shopify_rules
+  variables:
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  cache:
+    key:
+      files:
+        - shopify-clone/backend/pom.xml
+    paths:
+      - .m2/repository
+  script:
+    - cd shopify-clone/backend
+    # `package`, not `verify`: the OWASP dependency-check plugin in pom.xml
+    # binds to `verify` and needs an NVD API key + a slow first-run DB
+    # download. Run it separately (e.g. a scheduled pipeline) if you want it.
+    - mvn --batch-mode --no-transfer-progress clean package
+
+frontend:
+  stage: build
+  image: node:20
+  <<: *shopify_rules
+  cache:
+    key:
+      files:
+        - shopify-clone/frontend/package-lock.json
+    paths:
+      - shopify-clone/frontend/.npm
+  before_script:
+    - apt-get update && apt-get install -y chromium
+    - export CHROME_BIN=/usr/bin/chromium
+  script:
+    - cd shopify-clone/frontend
+    - npm ci --cache .npm --prefer-offline
+    - npm run build:prod
+    - npx ng test --no-watch --no-progress --browsers=ChromeHeadlessCI
+
+docker:
+  stage: docker
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "shopify-clone/**/*"
+        - ".gitlab-ci.yml"
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA" shopify-clone/backend
+    - docker push "$CI_REGISTRY_IMAGE/backend:latest"
+    - docker push "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
+    - docker build -t "$CI_REGISTRY_IMAGE/frontend:latest" -t "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA" shopify-clone/frontend
+    - docker push "$CI_REGISTRY_IMAGE/frontend:latest"
+    - docker push "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
+
+# deploy:
+#   TODO: same as the GitHub Actions version — add once a hosting target
+#   (VPS via SSH, Railway, Render, ...) is chosen.

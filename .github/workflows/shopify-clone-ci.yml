@@ -1,0 +1,120 @@
+name: Shopify Clone CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "shopify-clone/**"
+      - ".github/workflows/shopify-clone-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "shopify-clone/**"
+      - ".github/workflows/shopify-clone-ci.yml"
+
+concurrency:
+  group: shopify-clone-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Spring Boot)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: shopify-clone/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: shopify-clone/backend/pom.xml
+
+      # Uses `package` (not `verify`) on purpose: the OWASP dependency-check
+      # plugin in pom.xml is bound to the `verify` phase and needs a NVD API
+      # key + a long first-run download, which would make every CI run slow
+      # and flaky. Run it separately (e.g. a weekly workflow) once you have
+      # an NVD_API_KEY secret.
+      - name: Build & test
+        run: mvn --batch-mode --no-transfer-progress clean package
+
+  frontend:
+    name: Frontend (Angular)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: shopify-clone/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: shopify-clone/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (production)
+        run: npm run build:prod
+
+      - name: Unit tests (headless Chrome)
+        run: npx ng test --no-watch --no-progress --browsers=ChromeHeadless
+
+  docker:
+    name: Build & push Docker images
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute lowercase image namespace
+        id: vars
+        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: shopify-clone/backend
+          push: true
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.owner }}/shopify-clone-backend:latest
+            ghcr.io/${{ steps.vars.outputs.owner }}/shopify-clone-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: shopify-clone/frontend
+          push: true
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.owner }}/shopify-clone-frontend:latest
+            ghcr.io/${{ steps.vars.outputs.owner }}/shopify-clone-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # deploy:
+  #   TODO: once a hosting target is chosen (VPS via SSH, Railway, Render, ...),
+  #   add a job here that pulls the images built above and deploys them.
+  #   Kept out for now so this workflow can't accidentally deploy anywhere.
