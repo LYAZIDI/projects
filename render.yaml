@@ -21,8 +21,8 @@ services:
     runtime: docker
     plan: free
     rootDir: shopify-clone/backend
-    dockerfilePath: ./shopify-clone/backend/Dockerfile
-    dockerContext: ./shopify-clone/backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     envVars:
       - key: DB_HOST
         fromDatabase:
