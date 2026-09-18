@@ -6,6 +6,12 @@
 # there) with the built-in Container Registry enabled for the project — that's
 # what CI_REGISTRY_IMAGE / CI_REGISTRY_USER / CI_REGISTRY_PASSWORD below refer to.
 
+# No automated SonarQube quality gate here on purpose: SonarQube runs locally
+# only (see shopify-clone/docker-compose.yml), and GitLab shared runners can't
+# reach a server on your machine. Coverage reports (JaCoCo / karma lcov) are
+# still generated and kept as job artifacts, and are what a locally run
+# `sonar-scanner` / `mvn sonar:sonar` would feed into your local SonarQube.
+
 stages:
   - build
   - docker
@@ -39,6 +45,10 @@ backend:
     # binds to `verify` and needs an NVD API key + a slow first-run DB
     # download. Run it separately (e.g. a scheduled pipeline) if you want it.
     - mvn --batch-mode --no-transfer-progress clean package
+  artifacts:
+    paths:
+      - shopify-clone/backend/target/site/jacoco
+    expire_in: 30 days
 
 frontend:
   stage: build
@@ -57,7 +67,11 @@ frontend:
     - cd shopify-clone/frontend
     - npm ci --cache .npm --prefer-offline
     - npm run build:prod
-    - npx ng test --no-watch --no-progress --browsers=ChromeHeadlessCI
+    - npx ng test --no-watch --no-progress --code-coverage --browsers=ChromeHeadlessCI
+  artifacts:
+    paths:
+      - shopify-clone/frontend/coverage/shopify-clone-frontend
+    expire_in: 30 days
 
 docker:
   stage: docker

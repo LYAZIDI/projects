@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build:prod",
+  "outputDirectory": "dist/shopify-clone-frontend/browser",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://shopify-clone-backend-thv3.onrender.com/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

@@ -63,6 +63,30 @@ services:
     depends_on:
       - backend
 
+  # Local-only static analysis server (not reachable from CI runners, so the
+  # CI pipelines don't run an automated quality gate against it). Run tests
+  # with coverage first, then analyze:
+  #   backend:  mvn test && mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+  #             -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<token>
+  #   frontend: npx ng test --no-watch --code-coverage --browsers=ChromeHeadless && \
+  #             npx sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<token>
+  # First run: open http://localhost:9000 (admin/admin), create a token under
+  # My Account > Security, and generate a project per sonar-project.properties.
+  sonarqube:
+    image: sonarqube:community
+    container_name: shopify_sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
 volumes:
   postgres_data:
   redis_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:

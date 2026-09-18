@@ -16,6 +16,12 @@ concurrency:
   group: shopify-clone-${{ github.ref }}
   cancel-in-progress: true
 
+# No automated SonarQube quality gate here on purpose: SonarQube runs locally
+# only (see shopify-clone/docker-compose.yml), and GitHub-hosted runners can't
+# reach a server on your machine. Coverage reports (JaCoCo / karma lcov) are
+# still generated and uploaded as build artifacts, and are what a locally run
+# `sonar-scanner` / `mvn sonar:sonar` would feed into your local SonarQube.
+
 jobs:
   backend:
     name: Backend (Spring Boot)
@@ -42,6 +48,13 @@ jobs:
       - name: Build & test
         run: mvn --batch-mode --no-transfer-progress clean package
 
+      - name: Upload JaCoCo coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco-report
+          path: shopify-clone/backend/target/site/jacoco
+          if-no-files-found: warn
+
   frontend:
     name: Frontend (Angular)
     runs-on: ubuntu-latest
@@ -64,8 +77,15 @@ jobs:
       - name: Build (production)
         run: npm run build:prod
 
-      - name: Unit tests (headless Chrome)
-        run: npx ng test --no-watch --no-progress --browsers=ChromeHeadless
+      - name: Unit tests with coverage (headless Chrome)
+        run: npx ng test --no-watch --no-progress --code-coverage --browsers=ChromeHeadless
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: shopify-clone/frontend/coverage/shopify-clone-frontend
+          if-no-files-found: warn
 
   docker:
     name: Build & push Docker images
