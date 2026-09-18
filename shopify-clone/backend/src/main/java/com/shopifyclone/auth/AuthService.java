@@ -46,7 +46,7 @@ public class AuthService {
                 .enabled(true)
                 .build();
 
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         // Create associated profile based on role
         if (role == Role.ARTISAN) {

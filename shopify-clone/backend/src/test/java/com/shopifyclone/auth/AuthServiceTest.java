@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,6 +61,14 @@ class AuthServiceTest {
         baseCustomerRequest = new RegisterRequest(
                 "Jane", "Doe", "jane@example.com", "password123",
                 null, null, null, null);
+        // Mimics Hibernate's IDENTITY generation (which sets the id on the same
+        // instance during a real save) so AuthService.register()'s reassigned
+        // `user` ends up with an id, the way it would against a real database.
+        lenient().when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User savedUser = invocation.getArgument(0);
+            savedUser.setId(99L);
+            return savedUser;
+        });
     }
 
     @Test
@@ -98,6 +107,9 @@ class AuthServiceTest {
         assertThat(response.tokenType()).isEqualTo("Bearer");
         assertThat(response.email()).isEqualTo("jane@example.com");
         assertThat(response.role()).isEqualTo("CUSTOMER");
+        // Regression check: register() must use the saved (id-populated) user
+        // when building the response, not the pre-save instance.
+        assertThat(response.userId()).isEqualTo(99L);
     }
 
     @Test

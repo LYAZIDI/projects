@@ -90,12 +90,11 @@ class ProductControllerTest {
     }
 
     @Test
-    void search_shouldReturn500_whenQueryParamMissing() throws Exception {
-        // MissingServletRequestParameterException is not given a specific handler in
-        // GlobalExceptionHandler, so it falls through to the catch-all Exception handler,
-        // which responds with 500 rather than Spring's default 400.
+    void search_shouldReturn400_whenQueryParamMissing() throws Exception {
+        // GlobalExceptionHandler now has a dedicated MissingServletRequestParameterException
+        // handler, so a missing required param responds with 400, not 500.
         mockMvc.perform(get("/api/v1/products/search"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

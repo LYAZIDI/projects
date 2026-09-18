@@ -134,14 +134,14 @@ class OrderControllerTest {
     }
 
     @Test
-    void updateStatus_shouldReturn500_whenStatusParamIsInvalid() throws Exception {
-        // MethodArgumentTypeMismatchException has no dedicated handler in GlobalExceptionHandler,
-        // so it falls through to the catch-all Exception handler, which responds with 500.
+    void updateStatus_shouldReturn400_whenStatusParamIsInvalid() throws Exception {
+        // GlobalExceptionHandler now has a dedicated MethodArgumentTypeMismatchException
+        // handler, so an invalid enum value responds with 400, not 500.
         mockMvc.perform(patch("/api/v1/admin/orders/ORD-1/status")
                         .param("status", "NOT_A_STATUS")
                         .with(user(admin()))
                         .with(csrf()))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
