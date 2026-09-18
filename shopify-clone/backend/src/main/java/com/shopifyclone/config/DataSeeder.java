@@ -70,28 +70,28 @@ public class DataSeeder {
             List<SampleProduct> samples = List.of(
                 new SampleProduct("Veste Biker Classique", "veste-biker-classique",
                     "Veste biker en cuir pleine fleur tanné végétal. Coupe ajustée, doublure en soie, finitions à la main.",
-                    380.00, 290.00, 520.00, "Atelier Rousseau", "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600"),
+                    380.00, 290.00, 520.00, "Atelier Rousseau", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180334_ba9f7a1b-fd9e-4615-90bb-cf76a6cebfcb.png"),
                 new SampleProduct("Sac à Dos Cuir Vintage", "sac-a-dos-cuir-vintage",
                     "Sac à dos en cuir de buffle naturel. Tannage végétal traditionnel, fermetures laiton vieilli.",
-                    220.00, 160.00, null, "Maroquinerie Dubois", "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600"),
+                    220.00, 160.00, null, "Maroquinerie Dubois", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180335_4914e1ca-47d4-46e8-9b92-8fba8777c9da.png"),
                 new SampleProduct("Ceinture Artisanale Tressée", "ceinture-artisanale-tressee",
                     "Ceinture en cuir tressé à la main, boucle en argent massif. Disponible en plusieurs largeurs.",
-                    95.00, 65.00, null, "Atelier Rousseau", "https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=600"),
+                    95.00, 65.00, null, "Atelier Rousseau", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180334_a1b3b6ea-ded5-4b59-b96d-32da7fc2d4be.png"),
                 new SampleProduct("Portefeuille Slim Premium", "portefeuille-slim-premium",
                     "Portefeuille ultra-fin en cuir de veau grain croisé. 8 emplacements cartes, protection RFID.",
-                    85.00, 55.00, null, "Cuir & Co", "https://images.unsplash.com/photo-1627123424574-724758594e93?w=600"),
+                    85.00, 55.00, null, "Cuir & Co", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180335_26864ffa-e666-4932-bc31-28656517e353.png"),
                 new SampleProduct("Bottines Chelsea Artisan", "bottines-chelsea-artisan",
                     "Bottines Chelsea montées à la main sur semelle Goodyear welted. Cuir box-calf premium, doublure vachette.",
-                    420.00, 310.00, null, "Cordonnerie Martin", "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600"),
+                    420.00, 310.00, null, "Cordonnerie Martin", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180334_2e567a35-528e-42f1-af86-17c9ddc472e9.png"),
                 new SampleProduct("Porte-Documents Cuir", "porte-documents-cuir",
                     "Porte-documents en cuir selle naturel patinable. Format A4, soufflets galbés, poignée vintage.",
-                    165.00, 115.00, 220.00, "Maroquinerie Dubois", "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600"),
+                    165.00, 115.00, 220.00, "Maroquinerie Dubois", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180334_e01d8e55-2080-40df-ac6f-47544509f05a.png"),
                 new SampleProduct("Gants Conduites Cuir Chevreau", "gants-conduite-chevreau",
                     "Gants de conduite en cuir chevreau ultra-souple. Coutures anglaises, doublure cachemire.",
-                    125.00, 80.00, null, "Atelier Rousseau", "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=600"),
+                    125.00, 80.00, null, "Atelier Rousseau", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180335_ba7f3de9-07f2-476c-aaf6-2398e6b67587.png"),
                 new SampleProduct("Sac Cabas Souple", "sac-cabas-souple",
                     "Grand cabas en cuir vachette patinable avec soufflet. Idéal pour l'usage quotidien.",
-                    185.00, 130.00, null, "Cuir & Co", "https://images.unsplash.com/photo-1584917865442-de89be371f7a?w=600")
+                    185.00, 130.00, null, "Cuir & Co", "https://d8j0ntlcm91z4.cloudfront.net/user_3FApsUbEU0L5MBErkDbnAcW6xBT/hf_20260918_180335_10acd48a-5c58-4966-bc84-fd4b1d792f46.png")
             );
 
             for (SampleProduct s : samples) {
