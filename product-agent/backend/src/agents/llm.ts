@@ -12,7 +12,7 @@ export async function callAgent<T>(
   _maxTokens = 2048
 ): Promise<T> {
   const response = await getClient().models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.0-flash',
     contents: [{ parts: [{ text: userPrompt }] }],
     config: {
       systemInstruction: systemPrompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation, no code block. Be concise — keep string values under 100 words each.',

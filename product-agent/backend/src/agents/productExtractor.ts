@@ -21,7 +21,7 @@ function getClient(): GoogleGenAI {
  */
 export async function extractFromImage(base64: string, mediaType: string): Promise<ProductInput> {
   const response = await getClient().models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.0-flash',
     contents: [
       {
         parts: [
