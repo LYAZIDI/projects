@@ -9,3 +9,15 @@ node_modules/
 .env
 .env.*
 *.env
+
+# ── Ne jamais publier (dépôt public) ──
+# Sauvegardes de bases et copies locales de dépôts privés
+asfim-backups/
+asfim-reporting-temp/
+*.dump
+# Configuration locale des outils (serveurs MCP)
+.mcp.json
+# État local Expo
+.expo/
+# Documents de test générés (contiennent des données personnelles)
+job-copilot/**/test_*.docx
