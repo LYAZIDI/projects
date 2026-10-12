@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "jobSeek",
+    "slug": "jobseek",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "jobseek",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0F0F1A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.jobseek.app"
+    },
+    "android": {
+      "package": "com.jobseek.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F0F1A"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
