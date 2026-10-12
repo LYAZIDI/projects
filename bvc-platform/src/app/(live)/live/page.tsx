@@ -11,7 +11,7 @@ const TradingViewHeatmap = dynamic(() => import('@/components/TradingViewHeatmap
 
 interface TickerItem  { symbol: string; price: number | null; change_pct: number | null; label: string; }
 interface TxItem      { symbol: string; price: number | null; quantity: number | null; volume: number | null; time: string; label: string; market: string; }
-interface IndexItem   { code: string; label: string; value: number | null; change_pct: number | null; change_ytd: number | null; }
+interface IndexItem   { code: string; label: string; value: number | null; change_pct: number | null; change_ytd: number | null; high: number | null; low: number | null; previous: number | null; }
 interface FutureItem  { code: string; name: string; }
 interface HeatmapStock { secteur: string; ticker: string; nom: string; variation: number | null; }
 interface LiveData {
@@ -352,13 +352,16 @@ interface DeriveItem {
   high: number | null; low: number | null; quantityTraded: number | null; volume: number | null;
   changePct: number | null; bestBidPrice: number | null; bestBidQty: number | null;
   bestAskPrice: number | null; bestAskQty: number | null; positionOuverte: number | null;
+  prixTheorique: number | null; nbTransactions: number;
 }
 
 function DeriveTab() {
-  const [derives,  setDerives]  = useState<DeriveItem[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [sortKey,  setSortKey]  = useState<keyof DeriveItem>('symbol');
-  const [sortDir,  setSortDir]  = useState<'asc' | 'desc'>('asc');
+  const [derives,        setDerives]        = useState<DeriveItem[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [sortKey,        setSortKey]        = useState<keyof DeriveItem>('symbol');
+  const [sortDir,        setSortDir]        = useState<'asc' | 'desc'>('asc');
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch('/api/bvc/derives')
@@ -400,9 +403,10 @@ function DeriveTab() {
       <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: '0 0 16px 0' }}>Produits dérivés</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
         {derives.map(d => {
-          const isPos = (d.changePct ?? 0) >= 0;
+          const isPos    = (d.changePct ?? 0) >= 0;
+          const isActive = selectedSymbol === d.symbol;
           return (
-            <div key={d.symbol} style={{ background: C.card, border: `1.5px solid ${C.orange}`, borderRadius: 10, padding: '16px 18px' }}>
+            <div key={d.symbol} style={{ background: C.card, border: `1.5px solid ${isActive ? C.blue : C.orange}`, borderRadius: 10, padding: '16px 18px', transition: 'border-color 0.2s' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.text, textTransform: 'uppercase', letterSpacing: 0.3, lineHeight: 1.3 }}>{d.label}</div>
                 {d.changePct != null && (
@@ -418,15 +422,22 @@ function DeriveTab() {
                 <span>Cours réf<br /><strong style={{ color: C.text, fontSize: 13 }}>{fmtNum(d.refPrice)}</strong></span>
                 <span style={{ textAlign: 'right' }}>Volume<br /><strong style={{ color: C.text, fontSize: 13 }}>{d.volume != null ? d.volume.toLocaleString('fr-FR') : '—'}</strong></span>
               </div>
-              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, fontSize: 12, color: C.blue, cursor: 'pointer' }}>
-                › Voir plus de détails
-              </div>
+              <button
+                onClick={() => {
+                  setSelectedSymbol(s => s === d.symbol ? null : d.symbol);
+                  setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                }}
+                style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, fontSize: 12, color: isActive ? C.muted : C.blue, cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left', display: 'block' }}
+              >
+                {isActive ? '▼ Masquer les détails' : '› Voir plus de détails'}
+              </button>
             </div>
           );
         })}
       </div>
 
       {/* Table */}
+      <div ref={tableRef}>
       <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: '0 0 12px 0' }}>Tous les instruments</h2>
       <div style={{ overflowX: 'auto', borderRadius: 10, border: `1px solid ${C.border}` }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -447,35 +458,81 @@ function DeriveTab() {
           <tbody>
             {sorted.length === 0 && <tr><td colSpan={10} style={{ padding: 40, textAlign: 'center', color: C.muted }}>Aucun instrument</td></tr>}
             {sorted.map(d => {
-              const isPos = (d.changePct ?? 0) >= 0;
-              const st = d.status || 'NT';
+              const isPos   = (d.changePct ?? 0) >= 0;
+              const st      = d.status || 'NT';
               const statCol = st === 'T' ? C.green : st === 'S' ? C.red : C.amber;
+              const isOpen  = selectedSymbol === d.symbol;
+              const toggle  = () => setSelectedSymbol(s => s === d.symbol ? null : d.symbol);
+              const fmtMat  = (s: string) => { try { return new Date(s).toLocaleDateString('fr-FR'); } catch { return s || '—'; } };
               return (
-                <tr key={d.symbol} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ fontWeight: 700, color: C.text, fontSize: 13 }}>{d.label || d.symbol}</div>
-                    <div style={{ fontSize: 11, color: C.muted }}>Échéance : {d.maturityDate ? new Date(d.maturityDate).toLocaleDateString('fr-FR') : '—'}</div>
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.lastPrice)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.refPrice)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                    <span style={{ background: `${statCol}22`, color: statCol, border: `1px solid ${statCol}`, borderRadius: 3, padding: '2px 6px', fontWeight: 700, fontSize: 11 }}>{st}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.high)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.low)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
-                    {d.quantityTraded != null ? d.quantityTraded.toLocaleString('fr-FR') : '—'}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: C.green, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.bestBidPrice)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: C.red, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.bestAskPrice)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: d.changePct == null ? C.muted : isPos ? C.green : C.red }}>
-                    {d.changePct != null ? `${isPos ? '+' : ''}${d.changePct.toFixed(2)}%` : '—%'}
-                  </td>
-                </tr>
+                <>
+                  <tr
+                    key={d.symbol}
+                    onClick={toggle}
+                    style={{ borderBottom: isOpen ? 'none' : `1px solid ${C.border}`, cursor: 'pointer', background: isOpen ? '#1c2128' : undefined, transition: 'background 0.15s' }}
+                    onMouseEnter={e => { if (!isOpen) (e.currentTarget as HTMLTableRowElement).style.background = '#161b22'; }}
+                    onMouseLeave={e => { if (!isOpen) (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
+                  >
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: C.muted, fontSize: 10, transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block', flexShrink: 0 }}>▶</span>
+                        <div>
+                          <div style={{ fontWeight: 700, color: C.text, fontSize: 13 }}>{d.label || d.symbol}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>Échéance : {fmtMat(d.maturityDate)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.lastPrice)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.refPrice)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                      <span style={{ background: `${statCol}22`, color: statCol, border: `1px solid ${statCol}`, borderRadius: 3, padding: '2px 6px', fontWeight: 700, fontSize: 11 }}>{st}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.high)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.low)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
+                      {d.quantityTraded != null ? d.quantityTraded.toLocaleString('fr-FR') : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: C.green, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.bestBidPrice)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: C.red, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.bestAskPrice)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: d.changePct == null ? C.muted : isPos ? C.green : C.red }}>
+                      {d.changePct != null ? `${isPos ? '+' : ''}${d.changePct.toFixed(2)}%` : '—%'}
+                    </td>
+                  </tr>
+                  {isOpen && (
+                    <tr key={`${d.symbol}-detail`} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td colSpan={10} style={{ padding: '0 12px 16px 40px', background: '#1c2128' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px 24px', paddingTop: 12 }}>
+                          {[
+                            { label: 'Qté Achat',         value: d.bestBidQty != null ? d.bestBidQty.toLocaleString('fr-FR') : '—' },
+                            { label: 'Qté Vente',         value: d.bestAskQty != null ? d.bestAskQty.toLocaleString('fr-FR') : '—' },
+                            { label: 'Pos. ouvertes',     value: d.positionOuverte != null ? d.positionOuverte.toLocaleString('fr-FR') : '—', color: C.amber },
+                            { label: 'Cours compensation',value: fmtNum(d.lastPrice), color: C.amber },
+                            { label: 'Volume',            value: d.volume != null ? d.volume.toLocaleString('fr-FR') : '—' },
+                            { label: 'Transactions',      value: String(d.nbTransactions ?? 0) },
+                            { label: 'Sous-jacent',       value: d.underlying || '—' },
+                            { label: 'Ouverture',         value: fmtNum(d.openPrice) },
+                            { label: 'Échéance',          value: fmtMat(d.maturityDate) },
+                            { label: '+ Haut',            value: fmtNum(d.high), color: C.green },
+                            { label: '+ Bas',             value: fmtNum(d.low),  color: C.red },
+                            { label: 'Cours théorique',   value: fmtNum(d.prixTheorique) },
+                            { label: 'Meil. Achat',       value: fmtNum(d.bestBidPrice), color: C.green },
+                            { label: 'Meil. Vente',       value: fmtNum(d.bestAskPrice), color: C.red },
+                          ].map(({ label, value, color }) => (
+                            <div key={label}>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>{label}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: color ?? C.text, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               );
             })}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );
@@ -497,6 +554,7 @@ function DroitsTab() {
   const [typeFilter, setTypeFilter] = useState('');
   const [sortKey,  setSortKey]  = useState<keyof DroitItem>('label');
   const [sortDir,  setSortDir]  = useState<'asc' | 'desc'>('asc');
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/bvc/droits')
@@ -579,33 +637,75 @@ function DroitsTab() {
           <tbody>
             {sorted.length === 0 && <tr><td colSpan={10} style={{ padding: 40, textAlign: 'center', color: C.muted }}>Aucun droit</td></tr>}
             {sorted.map(d => {
-              const isPos   = (d.changePct ?? 0) >= 0;
-              const st      = d.status || 'NT';
-              const statCol = STATUT_COLORS[st] ?? STATUT_COLORS['NT'];
+              const isPos    = (d.changePct ?? 0) >= 0;
+              const st       = d.status || 'NT';
+              const statCol  = STATUT_COLORS[st] ?? STATUT_COLORS['NT'];
+              const isOpen   = selectedSymbol === d.symbol;
+              const toggle   = () => setSelectedSymbol(s => s === d.symbol ? null : d.symbol);
               return (
-                <tr key={d.symbol} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: '10px 12px' }}>
-                    <a href={BVC_PAGES.droits} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700, color: C.blue, textDecoration: 'none', fontSize: 13 }}>{d.label}</a>
-                    {d.emitter && <div style={{ fontSize: 11, color: C.muted }}>{d.emitter}</div>}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                    <span style={{ background: statCol.bg, color: statCol.color, border: `1px solid ${statCol.color}`, borderRadius: 3, padding: '2px 6px', fontWeight: 700, fontSize: 11 }}>{st}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.teal, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.refPrice)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.open)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
-                    {d.quantity != null ? d.quantity.toLocaleString('fr-FR') : '—'}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.high)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.low)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.price)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: d.changePct == null ? C.muted : isPos ? C.green : C.red }}>
-                    {d.changePct != null ? `${isPos ? '+' : ''}${d.changePct.toFixed(2)}%` : '—%'}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
-                    {d.volume != null ? d.volume.toLocaleString('fr-FR') : '—'}
-                  </td>
-                </tr>
+                <>
+                  <tr
+                    key={d.symbol}
+                    onClick={toggle}
+                    style={{ borderBottom: isOpen ? 'none' : `1px solid ${C.border}`, cursor: 'pointer', background: isOpen ? '#1c2128' : undefined, transition: 'background 0.15s' }}
+                    onMouseEnter={e => { if (!isOpen) (e.currentTarget as HTMLTableRowElement).style.background = '#161b22'; }}
+                    onMouseLeave={e => { if (!isOpen) (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
+                  >
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: C.muted, fontSize: 10, transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block' }}>▶</span>
+                        <div>
+                          <div style={{ fontWeight: 700, color: C.blue, fontSize: 13 }}>{d.label}</div>
+                          {d.emitter && <div style={{ fontSize: 11, color: C.muted }}>{d.emitter}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                      <span style={{ background: statCol.bg, color: statCol.color, border: `1px solid ${statCol.color}`, borderRadius: 3, padding: '2px 6px', fontWeight: 700, fontSize: 11 }}>{st}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.teal, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.refPrice)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.open)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
+                      {d.quantity != null ? d.quantity.toLocaleString('fr-FR') : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.high)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.low)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(d.price)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: d.changePct == null ? C.muted : isPos ? C.green : C.red }}>
+                      {d.changePct != null ? `${isPos ? '+' : ''}${d.changePct.toFixed(2)}%` : '—%'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
+                      {d.volume != null ? d.volume.toLocaleString('fr-FR') : '—'}
+                    </td>
+                  </tr>
+                  {isOpen && (
+                    <tr key={`${d.symbol}-detail`} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td colSpan={10} style={{ padding: '0 12px 16px 40px', background: '#1c2128' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px 20px', paddingTop: 10 }}>
+                          {[
+                            { label: 'Symbole',    value: d.symbol },
+                            { label: 'Type',       value: d.type },
+                            { label: 'Cours réf.', value: fmtNum(d.refPrice), color: C.teal },
+                            { label: 'Ouverture',  value: fmtNum(d.open) },
+                            { label: '+ Haut',     value: fmtNum(d.high),  color: C.green },
+                            { label: '+ Bas',      value: fmtNum(d.low),   color: C.red },
+                            { label: 'Dernier',    value: fmtNum(d.price), color: C.text },
+                            { label: 'Variation',  value: d.changePct != null ? `${isPos ? '+' : ''}${d.changePct.toFixed(2)}%` : '—', color: isPos ? C.green : C.red },
+                            { label: 'Volume',     value: d.volume != null ? d.volume.toLocaleString('fr-FR') : '—' },
+                            { label: 'Qté éch.',   value: d.quantity != null ? d.quantity.toLocaleString('fr-FR') : '—' },
+                            ...(d.bidPrice != null ? [{ label: 'Bid', value: fmtNum(d.bidPrice) }] : []),
+                            ...(d.askPrice != null ? [{ label: 'Ask', value: fmtNum(d.askPrice) }] : []),
+                          ].map(({ label, value, color }) => (
+                            <div key={label}>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>{label}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: color ?? C.text, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               );
             })}
           </tbody>
@@ -621,7 +721,7 @@ function DroitsTab() {
 // ── ObligationsTab ────────────────────────────────────────────────────────────
 
 interface BondItem {
-  symbol: string; emetteur: string; secteur: string;
+  symbol: string; isin: string; emetteur: string; secteur: string;
   type: string; quotationMode: string; statut: string;
   ouverture: number | null; plusHaut: number | null; plusBas: number | null;
   dernierCours: number | null; reference: number | null; variation: number | null;
@@ -633,12 +733,13 @@ interface BondItem {
 type BondSortKey = 'symbol' | 'emetteur' | 'reference' | 'dernierCours' | 'variation' | 'quantite' | 'volume' | 'plusHaut' | 'plusBas' | 'ouverture' | 'nbTransactions';
 
 function ObligationsTab() {
-  const [bonds,    setBonds]    = useState<BondItem[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [sortKey,  setSortKey]  = useState<BondSortKey>('symbol');
-  const [sortDir,  setSortDir]  = useState<'asc' | 'desc'>('asc');
+  const [bonds,          setBonds]          = useState<BondItem[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [search,         setSearch]         = useState('');
+  const [typeFilter,     setTypeFilter]     = useState('');
+  const [sortKey,        setSortKey]        = useState<BondSortKey>('symbol');
+  const [sortDir,        setSortDir]        = useState<'asc' | 'desc'>('asc');
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/bvc/obligations')
@@ -755,34 +856,75 @@ function ObligationsTab() {
               const isPos   = (b.variation ?? 0) >= 0;
               const st      = b.statut || 'NT';
               const statCol = STATUT_COLORS[st] ?? STATUT_COLORS['NT'];
+              const isOpen  = selectedSymbol === b.symbol;
+              const toggle  = () => setSelectedSymbol(s => s === b.symbol ? null : b.symbol);
               return (
-                <tr key={b.symbol} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: '10px 12px' }}>
-                    <a href={BVC_PAGES.obligations} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700, color: C.blue, textDecoration: 'none', fontSize: 13 }}>{b.symbol.trim()}</a>
-                  </td>
-                  <td style={{ padding: '10px 12px', color: C.text, fontSize: 12 }}>
-                    <div style={{ fontWeight: 600, color: C.text }}>{b.emetteur}</div>
-                    {b.secteur && <div style={{ fontSize: 11, color: C.muted }}>{b.secteur}</div>}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                    <span style={{ background: statCol.bg, color: statCol.color, border: `1px solid ${statCol.color}`, borderRadius: 3, padding: '2px 6px', fontWeight: 700, fontSize: 11 }}>{st}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.teal, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.reference)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.ouverture) !== '—' ? fmtNum(b.ouverture) : <span style={{ color: C.muted }}>—</span>}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.dernierCours)}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
-                    {b.quantite != null ? b.quantite.toLocaleString('fr-FR') : '—'}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
-                    {b.volume != null ? b.volume.toLocaleString('fr-FR') : '—'}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: b.variation == null ? C.muted : isPos ? C.green : C.red }}>
-                    {b.variation != null ? `${isPos ? '+' : ''}${b.variation.toFixed(2)}%` : '—'}
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.orange, fontSize: 12 }}>{b.quotationMode || '—'}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.plusHaut) !== '—' ? fmtNum(b.plusHaut) : <span style={{ color: C.muted }}>—</span>}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.plusBas) !== '—' ? fmtNum(b.plusBas) : <span style={{ color: C.muted }}>—</span>}</td>
-                </tr>
+                <>
+                  <tr
+                    key={b.symbol}
+                    onClick={toggle}
+                    style={{ borderBottom: isOpen ? 'none' : `1px solid ${C.border}`, cursor: 'pointer', background: isOpen ? '#1c2128' : undefined, transition: 'background 0.15s' }}
+                    onMouseEnter={e => { if (!isOpen) (e.currentTarget as HTMLTableRowElement).style.background = '#161b22'; }}
+                    onMouseLeave={e => { if (!isOpen) (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
+                  >
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: C.muted, fontSize: 10, transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block', flexShrink: 0 }}>▶</span>
+                        <span style={{ fontWeight: 700, color: C.blue, fontSize: 13 }}>{b.symbol.trim()}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 12px', color: C.text, fontSize: 12 }}>
+                      <div style={{ fontWeight: 600, color: C.text }}>{b.emetteur}</div>
+                      {b.secteur && <div style={{ fontSize: 11, color: C.muted }}>{b.secteur}</div>}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                      <span style={{ background: statCol.bg, color: statCol.color, border: `1px solid ${statCol.color}`, borderRadius: 3, padding: '2px 6px', fontWeight: 700, fontSize: 11 }}>{st}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.teal, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.reference)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.ouverture)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.dernierCours)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
+                      {b.quantite != null ? b.quantite.toLocaleString('fr-FR') : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
+                      {b.volume != null ? b.volume.toLocaleString('fr-FR') : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: b.variation == null ? C.muted : isPos ? C.green : C.red }}>
+                      {b.variation != null ? `${isPos ? '+' : ''}${b.variation.toFixed(2)}%` : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.orange, fontSize: 12 }}>{b.quotationMode || '—'}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.plusHaut)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(b.plusBas)}</td>
+                  </tr>
+                  {isOpen && (
+                    <tr key={`${b.symbol}-detail`} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td colSpan={12} style={{ padding: '0 12px 16px 40px', background: '#1c2128' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px 24px', paddingTop: 12 }}>
+                          {[
+                            { label: 'Cours réf',     value: fmtNum(b.reference),  color: C.teal },
+                            { label: '+ Haut',        value: fmtNum(b.plusHaut),   color: C.green },
+                            { label: '+ Bas',         value: fmtNum(b.plusBas),    color: C.red },
+                            { label: 'Volume',        value: b.volume != null ? b.volume.toLocaleString('fr-FR') : '—' },
+                            { label: 'Ouverture',     value: fmtNum(b.ouverture) },
+                            { label: 'Qté éch.',      value: b.quantite != null ? b.quantite.toLocaleString('fr-FR') : '—' },
+                            { label: 'ISIN',          value: b.isin || '—' },
+                            { label: 'Secteur',       value: b.secteur || '—' },
+                            { label: 'Type',          value: b.type || '—' },
+                            { label: 'Mode cotation', value: b.quotationMode || '—', color: C.orange },
+                            { label: 'Transactions',  value: String(b.nbTransactions ?? 0) },
+                            ...(b.achat.prix != null ? [{ label: 'Meil. Achat',  value: fmtNum(b.achat.prix), color: C.green }] : []),
+                            ...(b.vente.prix != null ? [{ label: 'Meil. Vente',  value: fmtNum(b.vente.prix), color: C.red }] : []),
+                          ].map(({ label, value, color }) => (
+                            <div key={label}>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>{label}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: color ?? C.text, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               );
             })}
           </tbody>
@@ -795,19 +937,169 @@ function ObligationsTab() {
   );
 }
 
+// ── IndexDetailView ───────────────────────────────────────────────────────────
+
+interface MarcheItem {
+  ticker: string; nom: string; secteur: string | null;
+  prix: number | null; veille?: number | null; variation: number | null;
+  volume: number | null;   // nb shares traded (QUANTITÉ ÉCHANGÉE)
+  capitaux: number | null; // MAD value (VOLUME)
+  haut: number | null; bas: number | null; ouverture: number | null;
+  marketCap: number | null;
+}
+
+const INDEX_TV: Record<string, string> = {
+  MASI:   'CSEMA:MASI',
+  MSI20:  'CSEMA:MSI20',
+  ESGI:   'CSEMA:ESGI',
+  MASIMS: 'CSEMA:MASIMS',
+};
+
+function IndexDetailView({ idx, onBack }: { idx: IndexItem; onBack: () => void }) {
+  const [comp,       setComp]       = useState<MarcheItem[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [compSource, setCompSource] = useState<string>('');
+
+  useEffect(() => {
+    fetch(`/api/bvc/indice/${idx.code}`)
+      .then(r => r.json())
+      .then(d => {
+        setComp(d.composition ?? []);
+        setCompSource(d.source ?? '');
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [idx.code]);
+
+  const isPos    = (idx.change_pct ?? 0) >= 0;
+  const ytdPos   = (idx.change_ytd ?? 0) >= 0;
+  const veille   = idx.previous
+    ?? (idx.value != null && idx.change_pct != null && idx.change_pct !== -100
+      ? idx.value / (1 + idx.change_pct / 100) : null);
+  const tvSymbol = INDEX_TV[idx.code] ?? `CSEMA:${idx.code}`;
+
+  const thC: React.CSSProperties = { padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8, borderBottom: `1px solid ${C.border}`, textAlign: 'right' };
+
+  return (
+    <div>
+      {/* Back */}
+      <button
+        onClick={onBack}
+        style={{ background: 'none', border: 'none', color: C.blue, fontSize: 13, cursor: 'pointer', padding: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 6 }}
+      >
+        ← Retour aux indices
+      </button>
+
+      {/* Hero */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: C.text, margin: '0 0 6px 0' }}>{idx.label}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 32, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(idx.value)}</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: isPos ? C.green : C.red, background: isPos ? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)', borderRadius: 6, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}>
+            {isPos ? '▲' : '▼'} {fmtPct(idx.change_pct)}
+          </span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
+        <TradingViewChart symbol={tvSymbol} height={380} isDark intraday />
+      </div>
+
+      {/* Stats table */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: '#1c2128' }}>
+              {['VALEUR', 'VEILLE', 'VARIATION %', 'PLUS HAUT', 'PLUS BAS', 'VARIATION 31/12'].map(h => (
+                <th key={h} style={{ ...thC, textAlign: h === 'VALEUR' ? 'left' : 'right' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '14px', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums', fontSize: 15 }}>{fmtNum(idx.value)}</td>
+              <td style={{ padding: '14px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(veille)}</td>
+              <td style={{ padding: '14px', textAlign: 'right', fontWeight: 700, color: isPos ? C.green : C.red }}>{fmtPct(idx.change_pct)}</td>
+              <td style={{ padding: '14px', textAlign: 'right', color: C.green, fontVariantNumeric: 'tabular-nums' }}>{idx.high ? fmtNum(idx.high) : '—'}</td>
+              <td style={{ padding: '14px', textAlign: 'right', color: C.red,   fontVariantNumeric: 'tabular-nums' }}>{idx.low  ? fmtNum(idx.low)  : '—'}</td>
+              <td style={{ padding: '14px', textAlign: 'right', fontWeight: 700, color: ytdPos ? C.green : C.red }}>{fmtPct(idx.change_ytd)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Composition */}
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: '0 0 12px 0' }}>Composition</h2>
+      {!loading && compSource && compSource !== 'bvc' && (
+        <div style={{ background: 'rgba(31,111,235,0.08)', border: `1px solid rgba(31,111,235,0.25)`, borderRadius: 6, padding: '8px 14px', marginBottom: 12, fontSize: 12, color: C.muted }}>
+          {compSource === 'top20_market_cap'
+            ? 'Composition approximative : 20 plus grandes capitalisations boursières (définition MSI20).'
+            : `Composition exacte de l'indice ${idx.code} non disponible dans le flux — affichage de l'ensemble des titres MASI.`}
+        </div>
+      )}
+      <div style={{ overflowX: 'auto', borderRadius: 10, border: `1px solid ${C.border}` }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: '#1c2128' }}>
+              <th style={{ ...thC, textAlign: 'left' }}>INSTRUMENT</th>
+              <th style={{ ...thC }}>COURS (MAD)</th>
+              <th style={{ ...thC }}>COURS VEILLE</th>
+              <th style={{ ...thC }}>VARIATION</th>
+              <th style={{ ...thC }}>VOLUME</th>
+              <th style={{ ...thC }}>QUANTITÉ ÉCHANGÉE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={6} style={{ padding: 30, textAlign: 'center', color: C.muted }}>Chargement...</td></tr>}
+            {!loading && comp.length === 0 && <tr><td colSpan={6} style={{ padding: 30, textAlign: 'center', color: C.muted }}>Aucune donnée</td></tr>}
+            {comp.map(s => {
+              const sPos = (s.variation ?? 0) >= 0;
+              const cv   = s.veille ?? (
+                s.prix != null && s.variation != null && s.variation !== -100
+                  ? s.prix / (1 + s.variation / 100) : null
+              );
+              return (
+                <tr key={s.ticker} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ padding: '10px 14px' }}>
+                    <div style={{ fontWeight: 600, color: C.text, fontSize: 13 }}>{s.nom}</div>
+                    <div style={{ fontSize: 11, color: C.muted }}>{s.ticker}</div>
+                  </td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(s.prix)}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(cv)}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: s.variation == null ? C.muted : sPos ? C.green : C.red }}>
+                    {s.variation != null ? `${sPos ? '+' : ''}${s.variation.toFixed(2)}%` : '—'}
+                  </td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
+                    {s.capitaux != null ? Math.round(s.capitaux).toLocaleString('fr-FR') : '—'}
+                  </td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', color: C.muted, fontVariantNumeric: 'tabular-nums' }}>
+                    {s.volume != null ? s.volume.toLocaleString('fr-FR') : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const TABS = ["Vue d'ensemble", 'Indices', 'Actions', 'Produits dérivés', 'Droits', 'Obligations'];
 
 export default function LivePage() {
-  const [data,      setData]      = useState<LiveData | null>(null);
-  const [loading,   setLoading]   = useState(true);
-  const [tab,       setTab]       = useState(0);
-  const [txTab,      setTxTab]      = useState<'central' | 'blocs' | 'off_book'>('central');
-  const [moverTab,   setMoverTab]   = useState<'gainers' | 'losers'>('gainers');
-  const [moverMarket,setMoverMarket]= useState<'comptant' | 'terme'>('comptant');
-  const [chartMode, setChartMode] = useState<'indices' | 'derives'>('indices');
-  const [navOpen,   setNavOpen]   = useState(false);
+  const [data,             setData]             = useState<LiveData | null>(null);
+  const [loading,          setLoading]          = useState(true);
+  const [tab,              setTab]              = useState(0);
+  const [txTab,            setTxTab]            = useState<'central' | 'blocs' | 'off_book'>('central');
+  const [moverTab,         setMoverTab]         = useState<'gainers' | 'losers'>('gainers');
+  const [moverMarket,      setMoverMarket]      = useState<'comptant' | 'terme'>('comptant');
+  const [chartMode,        setChartMode]        = useState<'indices' | 'derives'>('indices');
+  const [navOpen,          setNavOpen]          = useState(false);
+  const [selectedIndexCode,setSelectedIndexCode]= useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -952,7 +1244,7 @@ export default function LivePage() {
         {TABS.map((t, i) => (
           <button
             key={t}
-            onClick={() => setTab(i)}
+            onClick={() => { setTab(i); if (i !== 1) setSelectedIndexCode(null); }}
             style={{ padding: '12px 18px', fontSize: 13, fontWeight: 500, color: tab === i ? C.text : C.muted, background: 'none', border: 'none', borderBottom: tab === i ? `2px solid ${C.blue}` : '2px solid transparent', cursor: 'pointer', whiteSpace: 'nowrap', marginBottom: -1 }}
           >
             {t}
@@ -1054,10 +1346,10 @@ export default function LivePage() {
                 </div>
                 {chartMode === 'indices' ? (
                   <div style={{ borderRadius: 6, overflow: 'hidden' }}>
-                    <TradingViewChart symbol="CSEMA:MASI" height={240} isDark compact />
+                    <TradingViewChart symbol="CSEMA:MASI" height={280} isDark compact />
                   </div>
                 ) : (
-                  <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 12 }}>
+                  <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 12 }}>
                     Graphique dérivés non disponible
                   </div>
                 )}
@@ -1065,7 +1357,7 @@ export default function LivePage() {
 
               {/* Cadran heatmap TradingView AllMA */}
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
-                <TradingViewHeatmap height={320} />
+                <TradingViewHeatmap height={340} />
               </div>
             </div>
 
@@ -1143,39 +1435,63 @@ export default function LivePage() {
         )}
 
         {/* ── Indices tab ── */}
-        {!loading && tab === 1 && (
-          <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-              {sortedIndices.map(idx => <IndexCard key={idx.code} idx={idx} />)}
+        {!loading && tab === 1 && (() => {
+          const selIdx = selectedIndexCode
+            ? (data?.indices ?? []).find(i => i.code === selectedIndexCode) ?? null
+            : null;
+
+          if (selIdx) {
+            return <IndexDetailView idx={selIdx} onBack={() => setSelectedIndexCode(null)} />;
+          }
+
+          return (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+                {sortedIndices.map(idx => (
+                  <div
+                    key={idx.code}
+                    onClick={() => setSelectedIndexCode(idx.code)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <IndexCard idx={idx} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      {['Code', 'Indice', 'Valeur', 'Var %', 'YTD %'].map(h => (
+                        <th key={h} style={{ padding: '12px 16px', textAlign: h === 'Valeur' || h === 'Var %' || h === 'YTD %' ? 'right' : 'left', fontSize: 11, color: C.muted, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data?.indices ?? []).map(idx => {
+                      const isPos  = (idx.change_pct ?? 0) >= 0;
+                      const ytdPos = (idx.change_ytd ?? 0) >= 0;
+                      return (
+                        <tr
+                          key={idx.code}
+                          onClick={() => setSelectedIndexCode(idx.code)}
+                          style={{ borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = '#161b22'}
+                          onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = ''}
+                        >
+                          <td style={{ padding: '12px 16px', fontWeight: 700, color: INDEX_COLORS[idx.code] ?? C.muted }}>{idx.code}</td>
+                          <td style={{ padding: '12px 16px', color: C.text }}>{idx.label}</td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(idx.value)}</td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: isPos ? C.green : C.red }}>{fmtPct(idx.change_pct)}</td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: ytdPos ? C.green : C.red }}>{fmtPct(idx.change_ytd)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                    {['Code', 'Indice', 'Valeur', 'Var %', 'YTD %'].map(h => (
-                      <th key={h} style={{ padding: '12px 16px', textAlign: h === 'Valeur' || h === 'Var %' || h === 'YTD %' ? 'right' : 'left', fontSize: 11, color: C.muted, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.indices ?? []).map(idx => {
-                    const isPos  = (idx.change_pct ?? 0) >= 0;
-                    const ytdPos = (idx.change_ytd ?? 0) >= 0;
-                    return (
-                      <tr key={idx.code} style={{ borderBottom: `1px solid ${C.border}` }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: INDEX_COLORS[idx.code] ?? C.muted }}>{idx.code}</td>
-                        <td style={{ padding: '12px 16px', color: C.text }}>{idx.label}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(idx.value)}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: isPos ? C.green : C.red }}>{fmtPct(idx.change_pct)}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: ytdPos ? C.green : C.red }}>{fmtPct(idx.change_ytd)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Actions tab ── */}
         {!loading && tab === 2 && <ActionsTab />}
