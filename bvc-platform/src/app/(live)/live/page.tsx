@@ -1165,19 +1165,6 @@ export default function LivePage() {
               Z<span style={{ color: '#C49A2E' }}>É</span>NITH
             </div>
           </div>
-          <a
-            href="https://asfim-reporting.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.muted, textDecoration: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 9px', transition: 'color 0.15s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = C.text)}
-            onMouseLeave={e => (e.currentTarget.style.color = C.muted)}
-          >
-            ASFIM Reporting
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-              <path d="M4 2H2a1 1 0 00-1 1v5a1 1 0 001 1h5a1 1 0 001-1V6M6 1h3m0 0v3m0-3L4.5 5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </a>
         </div>
         <SessionBadge status={data?.session?.status} />
         {/* ── Nav dropdown ── */}
