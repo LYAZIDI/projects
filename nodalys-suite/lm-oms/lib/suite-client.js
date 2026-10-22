@@ -5,7 +5,7 @@
  *  de coût, expéditions). Clé d'intégration partagée.
  * ============================================================ */
 
-const config = require('../config.json');
+const config = require('./config');
 
 async function appel(base, chemin, options = {}) {
   const reponse = await fetch(base + chemin, {

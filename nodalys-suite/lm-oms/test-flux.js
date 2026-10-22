@@ -103,7 +103,8 @@ ok('annulation refusée après transmission au WMS', erreurAnnulation && erreurA
 const kpi = oms.kpi();
 ok('KPI tour de contrôle cohérents',
    kpi.totalCommandes === 5 && kpi.parStatut.LIVREE === 1 && kpi.aTransmettre === 4);
-ok('base SQLite dédiée à l\'OMS', store.modeSql === true && store.DATA_FILE.endsWith('oms.db'));
+/* SQLite si better-sqlite3 se charge, sinon repli JSON (Node 24) ou Turso */
+ok('base dédiée à l\'OMS', store.modeTurso || /oms\.(db|json)$/.test(store.DATA_FILE));
 
 console.log('\nMétier OMS valide. Pour la base de démonstration complète :');
 console.log('démarrez WMS + TMS puis lancez "node lib/seed.js".');

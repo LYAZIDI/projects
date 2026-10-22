@@ -8,7 +8,11 @@
     "seed": "node lib/seed.js",
     "test": "node test-flux.js"
   },
-  "dependencies": {
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "optionalDependencies": {
     "better-sqlite3": "11.10.0"
   }
 }

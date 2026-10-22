@@ -113,5 +113,11 @@ async function seedOms() {
   console.log('==================================================');
 }
 
-if (require.main === module) seedOms().catch(e => { console.error(e); process.exit(1); });
+if (require.main === module) {
+  (async () => {
+    await store.preparer();
+    await seedOms();
+    await store.valider();
+  })().catch(e => { console.error(e); process.exit(1); });
+}
 module.exports = { seedOms };

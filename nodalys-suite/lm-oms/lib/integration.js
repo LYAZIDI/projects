@@ -62,14 +62,23 @@ async function transmettreCommande(commandeId) {
     const e = new Error(`Commande ${commande.numero} non validée (${commande.statut})`);
     e.metier = true; throw e;
   }
-  const creee = await suite.transmettreCommandeWms({
-    referenceExterne: commande.numero,
-    client: commande.client,
-    priorite: commande.priorite,
-    dateLivraison: commande.dateLivraisonSouhaitee,
-    transporteur: commande.transporteurChoisi,
-    lignes: commande.lignes.map(l => ({ article: l.article, qte: l.qte })),
-  });
+  let creee;
+  try {
+    creee = await suite.transmettreCommandeWms({
+      referenceExterne: commande.numero,
+      client: commande.client,
+      priorite: commande.priorite,
+      dateLivraison: commande.dateLivraisonSouhaitee,
+      transporteur: commande.transporteurChoisi,
+      lignes: commande.lignes.map(l => ({ article: l.article, qte: l.qte })),
+    });
+  } catch (e) {
+    /* Déjà reçue par le WMS (requête rejouée, ou écriture OMS perdue
+     * après l'envoi) : on reprend la commande WMS existante. */
+    if (!/déjà importée/.test(e.message)) throw e;
+    creee = (await suite.listerCommandesWms()).find(c => c.referenceExterne === commande.numero);
+    if (!creee) throw e;
+  }
   return oms.commandeMarquerTransmise(commandeId, creee.numero);
 }
 

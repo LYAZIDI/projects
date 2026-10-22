@@ -15,7 +15,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const config = require('./config.json');
+const config = require('./lib/config');
 const store = require('./lib/store');
 const oms = require('./lib/oms');
 const suite = require('./lib/suite-client');
@@ -64,8 +64,23 @@ function servirStatique(req, res) {
   fs.createReadStream(fichier).pipe(res);
 }
 
-/* ---------- Sessions (cookie lmoms, auth déléguée au WMS) ---------- */
-const sessions = new Map();
+/* ---------- Sessions (cookie lmoms signé, auth déléguée au WMS) ----------
+ * Cookie signé (HMAC) portant l'utilisateur et l'expiration (12 h) :
+ * rien à stocker côté serveur, donc valable sur toutes les instances
+ * Vercel. Secret LM_SECRET_SESSION ; à défaut (local), un secret tiré
+ * au démarrage — il suffit alors de se reconnecter après relance.
+ */
+const SECRET_SESSION = process.env.LM_SECRET_SESSION || crypto.randomBytes(32).toString('hex');
+
+function signer(texte) {
+  return crypto.createHmac('sha256', SECRET_SESSION).update(texte).digest('base64url');
+}
+
+/* Secure seulement en HTTPS (le local reste en http://localhost) */
+function attributsCookie(req) {
+  const https = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+  return `HttpOnly; SameSite=Lax; Path=/${https ? '; Secure' : ''}`;
+}
 
 function lireCookie(req, nom) {
   for (const partie of (req.headers.cookie || '').split(';')) {
@@ -76,9 +91,14 @@ function lireCookie(req, nom) {
 }
 
 function sessionCourante(req) {
-  const session = sessions.get(lireCookie(req, 'lmoms'));
-  if (!session || session.expire < Date.now()) return null;
-  session.expire = Date.now() + DUREE_SESSION_MS;
+  const [donnees, signature] = lireCookie(req, 'lmoms').split('.');
+  if (!donnees || !signature) return null;
+  const attendue = Buffer.from(signer(donnees));
+  const recue = Buffer.from(signature);
+  if (recue.length !== attendue.length || !crypto.timingSafeEqual(recue, attendue)) return null;
+  let session;
+  try { session = JSON.parse(Buffer.from(donnees, 'base64url').toString('utf8')); } catch { return null; }
+  if (!session.expire || session.expire < Date.now()) return null;
   return session.utilisateur;
 }
 
@@ -108,15 +128,13 @@ route('POST', '/api/connexion', async (p, corps, q, contexte) => {
     const e = new Error('Identifiants refusés par le WMS (comptes uniques de la suite)');
     e.metier = true; throw e;
   }
-  const jeton = crypto.randomBytes(24).toString('hex');
-  sessions.set(jeton, { utilisateur, expire: Date.now() + DUREE_SESSION_MS });
+  const donnees = Buffer.from(JSON.stringify({ utilisateur, expire: Date.now() + DUREE_SESSION_MS })).toString('base64url');
   contexte.res.setHeader('Set-Cookie',
-    `lmoms=${jeton}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${DUREE_SESSION_MS / 1000}`);
+    `lmoms=${donnees}.${signer(donnees)}; ${attributsCookie(contexte.req)}; Max-Age=${DUREE_SESSION_MS / 1000}`);
   return utilisateur;
 }, 'PUBLIC');
 route('POST', '/api/deconnexion', (p, corps, q, contexte) => {
-  sessions.delete(lireCookie(contexte.req, 'lmoms'));
-  contexte.res.setHeader('Set-Cookie', 'lmoms=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+  contexte.res.setHeader('Set-Cookie', `lmoms=; ${attributsCookie(contexte.req)}; Max-Age=0`);
   return { ok: true };
 }, 'PUBLIC');
 route('GET', '/api/moi', (p, corps, q, contexte) => contexte.utilisateur || { anonyme: true }, 'PUBLIC');
@@ -140,8 +158,22 @@ route('PUT',  '/api/canaux/:code', (p, corps) => oms.canalModifier(p.code, corps
 route('GET',  '/api/clients', () => store.getDb().clients);
 route('POST', '/api/clients/synchroniser', () => integration.synchroniserClients(), 'SUPERVISEUR');
 
+/* ---------- Suivi ----------
+ * Statuts rafraîchis depuis le WMS/TMS à la consultation, au plus une
+ * fois par minute et par instance (pas de tâche de fond sur Vercel). */
+const INTERVALLE_SUIVI_MS = 60000;
+let dernierSuivi = 0;
+async function suiviRecent() {
+  if (Date.now() - dernierSuivi < INTERVALLE_SUIVI_MS) return;
+  dernierSuivi = Date.now();
+  try {
+    const r = await integration.rafraichirSuivi();
+    if (r.misesAJour > 0) console.log(`[SUIVI] ${r.misesAJour} commande(s) mise(s) à jour depuis le WMS/TMS`);
+  } catch { /* WMS injoignable : prochaine consultation */ }
+}
+
 /* ---------- Commandes ---------- */
-route('GET',  '/api/commandes', () => [...store.getDb().commandes].reverse());
+route('GET',  '/api/commandes', async () => { await suiviRecent(); return [...store.getDb().commandes].reverse(); });
 route('POST', '/api/commandes', (p, corps) => oms.commandeCreer(corps));
 route('POST', '/api/commandes/analyser', (p, corps) => integration.analyserCommande(corps.texte));
 route('GET',  '/api/analyse/etat', () => ({ disponible: typesafe.configure() }));
@@ -152,10 +184,19 @@ route('GET',  '/api/commandes/:id/suivi', p => integration.suivi360(p.id));
 route('POST', '/api/suivi/rafraichir', () => integration.rafraichirSuivi());
 
 /* ---------- KPI ---------- */
-route('GET', '/api/kpi', () => oms.kpi());
+route('GET', '/api/kpi', async () => { await suiviRecent(); return oms.kpi(); });
 
-/* ---------- Serveur ---------- */
-const serveur = http.createServer(async (req, res) => {
+/* ---------- Serveur ----------
+ * Chaque appel API : chargement de la base (store.preparer), exécution,
+ * puis écriture (store.valider). En mode Turso, si une autre instance a
+ * écrit entre-temps, la requête est rejouée sur la base à jour (au plus
+ * 5 essais) ; la transmission au WMS y est idempotente (référence
+ * externe = numéro OMS, voir integration.transmettreCommande). */
+const ESSAIS_MAX = 5;
+
+const gestionnaire = (req, res) => store.enSerie(() => traiter(req, res));
+
+async function traiter(req, res) {
   const url = new URL(req.url, 'http://x');
   if (!url.pathname.startsWith('/api/')) return servirStatique(req, res);
 
@@ -174,34 +215,43 @@ const serveur = http.createServer(async (req, res) => {
     }
   }
 
+  let corps;
   try {
-    const corps = (req.method === 'POST' || req.method === 'PUT') ? await lireCorps(req) : {};
-    if (utilisateur) corps.operateur = utilisateur.code;
-    const contexte = { req, res, utilisateur };
-    const resultat = await correspondance.gestionnaire(correspondance.params, corps, query, contexte);
-    repondreJson(res, 200, resultat === undefined ? { ok: true } : resultat);
+    corps = (req.method === 'POST' || req.method === 'PUT') ? await lireCorps(req) : {};
   } catch (e) {
-    repondreJson(res, e.metier ? 400 : 500, { erreur: e.message });
-    if (!e.metier) console.error(e);
+    return repondreJson(res, 400, { erreur: e.message });
   }
-});
+  if (utilisateur) corps.operateur = utilisateur.code;
+  const contexte = { req, res, utilisateur };
 
-/* Rafraîchissement automatique du suivi toutes les 60 s */
-let suiviEnCours = false;
-setInterval(async () => {
-  if (suiviEnCours) return;
-  suiviEnCours = true;
-  try {
-    const r = await integration.rafraichirSuivi();
-    if (r.misesAJour > 0) console.log(`[SUIVI] ${r.misesAJour} commande(s) mise(s) à jour depuis le WMS/TMS`);
-  } catch { /* WMS injoignable : prochaine passe */ }
-  finally { suiviEnCours = false; }
-}, 60000);
+  for (let essai = 1; ; essai++) {
+    try {
+      await store.preparer();
+      const resultat = await correspondance.gestionnaire(correspondance.params, structuredClone(corps), query, contexte);
+      await store.valider();
+      return repondreJson(res, 200, resultat === undefined ? { ok: true } : resultat);
+    } catch (e) {
+      store.abandonner();
+      if (e.conflit && essai < ESSAIS_MAX) {
+        await new Promise(r => setTimeout(r, 20 + Math.random() * 80 * essai));
+        continue;
+      }
+      if (!e.metier && !e.conflit) console.error(e);
+      return repondreJson(res, e.metier ? 400 : e.conflit ? 409 : 500, { erreur: e.message });
+    }
+  }
+}
 
-serveur.listen(PORT, () => {
-  console.log('====================================================');
-  console.log('  LM-OMS démarré (tour de contrôle des commandes)');
-  console.log(`  IHM : http://localhost:${PORT}/`);
-  console.log(`  WMS attendu : ${config.wmsUrl}  ·  TMS attendu : ${config.tmsUrl}`);
-  console.log('====================================================');
-});
+/* Hébergement Vercel : api/index.js exporte le gestionnaire. */
+module.exports = { gestionnaire };
+
+if (require.main === module) {
+  http.createServer(gestionnaire).listen(PORT, () => {
+    console.log('====================================================');
+    console.log('  LM-OMS démarré (tour de contrôle des commandes)');
+    console.log(`  IHM : http://localhost:${PORT}/`);
+    console.log(`  WMS attendu : ${config.wmsUrl}  ·  TMS attendu : ${config.tmsUrl}`);
+    console.log(`  Base        : ${store.DATA_FILE}`);
+    console.log('====================================================');
+  });
+}
