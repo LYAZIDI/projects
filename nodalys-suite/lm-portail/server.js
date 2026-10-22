@@ -15,11 +15,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const config = require('./config.json');
+const config = require('./lib/config');
+const stockage = require('./lib/stockage');
 
 const PORT = process.env.PORT || config.port || 8750;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const FICHIER_ABONNEMENT = path.join(__dirname, 'abonnement.json');
 const DUREE_SESSION_MS = 12 * 3600 * 1000;
 const NIVEAUX_ROLE = { OPERATEUR: 1, SUPERVISEUR: 2, ADMIN: 3 };
 
@@ -70,27 +70,9 @@ const PACKS = [
     argument: 'Le Logistics Manager complet, omnicanal.' },
 ];
 
-/* ------------------------------------------------------------
- *  Abonnement (état persistant, modifiable par un ADMIN)
- * ------------------------------------------------------------ */
-function lireAbonnement() {
-  return JSON.parse(fs.readFileSync(FICHIER_ABONNEMENT, 'utf8'));
-}
-function ecrireAbonnement(abonnement) {
-  fs.writeFileSync(FICHIER_ABONNEMENT, JSON.stringify(abonnement, null, 2), 'utf8');
-}
-
-/* ------------------------------------------------------------
- *  Smoke test — journal des prospects (validation de la demande)
- * ------------------------------------------------------------ */
-const FICHIER_PROSPECTS = path.join(__dirname, 'prospects.json');
-function lireProspects() {
-  try { return JSON.parse(fs.readFileSync(FICHIER_PROSPECTS, 'utf8')); }
-  catch { return { vues: 0, prospects: [] }; }
-}
-function ecrireProspects(donnees) {
-  fs.writeFileSync(FICHIER_PROSPECTS, JSON.stringify(donnees, null, 2), 'utf8');
-}
+/* L'abonnement (modifiable par un ADMIN) et le journal du smoke test
+ * sont persistés par lib/stockage.js : fichiers JSON en local, base
+ * Turso en ligne. */
 
 /* Pack dont la composition correspond EXACTEMENT aux modules actifs */
 function packPour(modules) {
@@ -145,9 +127,22 @@ function servirStatique(req, res) {
 }
 
 /* ------------------------------------------------------------
- *  Sessions (auth déléguée au WMS, cookie lmportail)
+ *  Sessions (auth déléguée au WMS, cookie lmportail signé)
+ *
+ *  Cookie signé (HMAC) portant l'utilisateur et l'expiration (12 h) :
+ *  rien à stocker côté serveur, donc valable sur toutes les instances
+ *  Vercel. Secret LM_SECRET_SESSION ; à défaut (local), un secret tiré
+ *  au démarrage — il suffit alors de se reconnecter après relance.
  * ------------------------------------------------------------ */
-const sessions = new Map();
+const SECRET_SESSION = process.env.LM_SECRET_SESSION || crypto.randomBytes(32).toString('hex');
+function signer(texte) {
+  return crypto.createHmac('sha256', SECRET_SESSION).update(texte).digest('base64url');
+}
+/* Secure seulement en HTTPS (le local reste en http://localhost) */
+function attributsCookie(req) {
+  const https = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+  return `HttpOnly; SameSite=Lax; Path=/${https ? '; Secure' : ''}`;
+}
 function lireCookie(req, nom) {
   for (const p of (req.headers.cookie || '').split(';')) {
     const [c, ...r] = p.trim().split('=');
@@ -156,10 +151,15 @@ function lireCookie(req, nom) {
   return '';
 }
 function sessionCourante(req) {
-  const s = sessions.get(lireCookie(req, 'lmportail'));
-  if (!s || s.expire < Date.now()) return null;
-  s.expire = Date.now() + DUREE_SESSION_MS;
-  return s.utilisateur;
+  const [donnees, signature] = lireCookie(req, 'lmportail').split('.');
+  if (!donnees || !signature) return null;
+  const attendue = Buffer.from(signer(donnees));
+  const recue = Buffer.from(signature);
+  if (recue.length !== attendue.length || !crypto.timingSafeEqual(recue, attendue)) return null;
+  let session;
+  try { session = JSON.parse(Buffer.from(donnees, 'base64url').toString('utf8')); } catch { return null; }
+  if (!session.expire || session.expire < Date.now()) return null;
+  return session.utilisateur;
 }
 async function authentifierWms(code, mdp) {
   const reponse = await fetch(config.wmsUrl + '/api/connexion', {
@@ -202,15 +202,13 @@ route('POST', '/api/connexion', async (p, corps, contexte) => {
   if (!utilisateur || utilisateur.anonyme) {
     const e = new Error('Identifiants refusés (comptes de la suite LM)'); e.metier = true; throw e;
   }
-  const jeton = crypto.randomBytes(24).toString('hex');
-  sessions.set(jeton, { utilisateur, expire: Date.now() + DUREE_SESSION_MS });
+  const donnees = Buffer.from(JSON.stringify({ utilisateur, expire: Date.now() + DUREE_SESSION_MS })).toString('base64url');
   contexte.res.setHeader('Set-Cookie',
-    `lmportail=${jeton}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${DUREE_SESSION_MS / 1000}`);
+    `lmportail=${donnees}.${signer(donnees)}; ${attributsCookie(contexte.req)}; Max-Age=${DUREE_SESSION_MS / 1000}`);
   return utilisateur;
 });
 route('POST', '/api/deconnexion', (p, corps, contexte) => {
-  sessions.delete(lireCookie(contexte.req, 'lmportail'));
-  contexte.res.setHeader('Set-Cookie', 'lmportail=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+  contexte.res.setHeader('Set-Cookie', `lmportail=; ${attributsCookie(contexte.req)}; Max-Age=0`);
   return { ok: true };
 });
 route('GET', '/api/moi', (p, corps, contexte) => contexte.utilisateur || { anonyme: true });
@@ -219,7 +217,7 @@ route('GET', '/api/moi', (p, corps, contexte) => contexte.utilisateur || { anony
  * Les modules NON souscrits n'exposent PAS leur URL (pas d'accès),
  * seulement leur prix (upsell). */
 route('GET', '/api/portail', async (p, corps, contexte) => {
-  const abonnement = lireAbonnement();
+  const abonnement = await stockage.lireAbonnement();
   const modules = MODULES.map(m => {
     const actif = !!abonnement.modules[m.code];
     return {
@@ -246,7 +244,7 @@ route('GET', '/api/portail', async (p, corps, contexte) => {
 });
 
 /* ADMIN : activer / désactiver un module (simule la gestion d'abonnement) */
-route('POST', '/api/abonnement/module/:code', (p, corps, contexte) => {
+route('POST', '/api/abonnement/module/:code', async (p, corps, contexte) => {
   if (!contexte.utilisateur || contexte.utilisateur.role !== 'ADMIN') {
     const e = new Error('Réservé à l\'administrateur du compte'); e.metier = true; throw e;
   }
@@ -255,23 +253,23 @@ route('POST', '/api/abonnement/module/:code', (p, corps, contexte) => {
   if (code === 'WMS' && corps.actif === false) {
     const e = new Error('Le WMS est le socle de la suite : il ne peut pas être désactivé'); e.metier = true; throw e;
   }
-  const abonnement = lireAbonnement();
+  const abonnement = await stockage.lireAbonnement();
   abonnement.modules[code] = !!corps.actif;
-  ecrireAbonnement(abonnement);
+  await stockage.ecrireAbonnement(abonnement);
   return { module: code, actif: abonnement.modules[code], prixTotal: prixCourant(abonnement.modules) };
 });
 
 /* ADMIN : appliquer un pack complet */
-route('POST', '/api/abonnement/pack/:code', (p, corps, contexte) => {
+route('POST', '/api/abonnement/pack/:code', async (p, corps, contexte) => {
   if (!contexte.utilisateur || contexte.utilisateur.role !== 'ADMIN') {
     const e = new Error('Réservé à l\'administrateur du compte'); e.metier = true; throw e;
   }
   const pack = PACKS.find(x => x.code === p.code.toUpperCase());
   if (!pack) { const e = new Error('Pack inconnu'); e.metier = true; throw e; }
-  const abonnement = lireAbonnement();
+  const abonnement = await stockage.lireAbonnement();
   for (const m of MODULES) abonnement.modules[m.code] = pack.modules.includes(m.code);
   abonnement.plan = pack.code;
-  ecrireAbonnement(abonnement);
+  await stockage.ecrireAbonnement(abonnement);
   return { plan: pack.code, prixTotal: prixCourant(abonnement.modules) };
 });
 
@@ -287,30 +285,23 @@ route('POST', '/api/abonnement/pack/:code', (p, corps, contexte) => {
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /* Beacon de visite (appelé au chargement de la landing) */
-route('POST', '/api/smoke/vue', (p, corps) => {
-  const d = lireProspects();
-  d.vues = (d.vues || 0) + 1;
-  ecrireProspects(d);
-  return { vues: d.vues };
-});
+route('POST', '/api/smoke/vue', async () => ({ vues: await stockage.compterVue() }));
 
 /* Inscription à la liste d'attente = la « fumée » qu'on mesure */
-route('POST', '/api/smoke/interet', (p, corps) => {
+route('POST', '/api/smoke/interet', async (p, corps) => {
   const email = String(corps.email || '').trim().toLowerCase();
   if (!EMAIL_RE.test(email)) { const e = new Error('Adresse e-mail invalide'); e.metier = true; throw e; }
   const formule = ['ESSENTIEL', 'LOGISTIQUE', 'SUITE'].includes(corps.formule) ? corps.formule : null;
-  const d = lireProspects();
-  const existant = d.prospects.find(x => x.email === email);
-  if (existant) return { deja: true, total: d.prospects.length };
-  d.prospects.push({ email, formule, langue: corps.langue || 'fr', date: new Date().toISOString() });
-  ecrireProspects(d);
-  return { rang: d.prospects.length, total: d.prospects.length };
+  const { deja, total } = await stockage.ajouterProspect(
+    { email, formule, langue: corps.langue || 'fr', date: new Date().toISOString() });
+  if (deja) return { deja: true, total };
+  return { rang: total, total };
 });
 
 /* Tableau de bord du smoke test : agrégats de conversion.
  * La liste des emails n'est renvoyée qu'à un ADMIN connecté. */
-route('GET', '/api/smoke/metrics', (p, corps, contexte) => {
-  const d = lireProspects();
+route('GET', '/api/smoke/metrics', async (p, corps, contexte) => {
+  const d = await stockage.lireProspects();
   const vues = d.vues || 0;
   const inscrits = d.prospects.length;
   const parFormule = { ESSENTIEL: 0, LOGISTIQUE: 0, SUITE: 0, SANS: 0 };
@@ -334,7 +325,7 @@ route('GET', '/api/smoke/metrics', (p, corps, contexte) => {
 /* ------------------------------------------------------------
  *  Serveur
  * ------------------------------------------------------------ */
-const serveur = http.createServer(async (req, res) => {
+async function gestionnaire(req, res) {
   const url = new URL(req.url, 'http://x');
   if (!url.pathname.startsWith('/api/')) return servirStatique(req, res);
 
@@ -350,14 +341,20 @@ const serveur = http.createServer(async (req, res) => {
     repondreJson(res, e.metier ? 400 : 500, { erreur: e.message });
     if (!e.metier) console.error(e);
   }
-});
+}
 
-serveur.listen(PORT, () => {
-  console.log('====================================================');
-  console.log('  LM-SUITE — Portail de la suite logistique');
-  console.log(`  Accueil : http://localhost:${PORT}/`);
-  console.log(`  Smoke test (landing) : http://localhost:${PORT}/smoke.html`);
-  const ab = lireAbonnement();
-  console.log(`  Abonnement : ${planPour(ab.modules)} (${prixCourant(ab.modules)} €/mois)`);
-  console.log('====================================================');
-});
+/* Hébergement Vercel : api/index.js exporte le gestionnaire. */
+module.exports = { gestionnaire };
+
+if (require.main === module) {
+  http.createServer(gestionnaire).listen(PORT, async () => {
+    console.log('====================================================');
+    console.log('  LM-SUITE — Portail de la suite logistique');
+    console.log(`  Accueil : http://localhost:${PORT}/`);
+    console.log(`  Smoke test (landing) : http://localhost:${PORT}/smoke.html`);
+    console.log(`  Stockage : ${stockage.DESCRIPTION}`);
+    const ab = await stockage.lireAbonnement();
+    console.log(`  Abonnement : ${planPour(ab.modules)} (${prixCourant(ab.modules)} €/mois)`);
+    console.log('====================================================');
+  });
+}

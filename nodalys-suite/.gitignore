@@ -11,3 +11,4 @@ render.yaml
 .vercel
 .env
 .env.*
+prospects.json
