@@ -1,0 +1,18 @@
+{
+  "name": "lm-tms",
+  "version": "1.0.0",
+  "description": "LM-TMS - Transport Management System de la suite LM (compagnon du LM-WMS)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node lib/seed.js",
+    "test": "node test-flux.js"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "11.10.0"
+  }
+}

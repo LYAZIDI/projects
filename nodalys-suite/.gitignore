@@ -1,0 +1,13 @@
+node_modules/
+data/
+outils/
+edi/
+mdp.txt
+render.yaml
+*.log
+*.db
+*.db-wal
+*.db-shm
+.vercel
+.env
+.env.*

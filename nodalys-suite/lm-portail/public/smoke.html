@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LM-SUITE — La logistique modulaire, enfin simple</title>
+  <meta name="description" content="WMS, TMS et OMS en une seule plateforme. Rejoignez la liste d'attente pour un accès anticipé.">
+  <style>
+    :root {
+      --bleu:#2f80c3; --vert:#2f9e68; --prune:#8e4ea6;
+      --fond:#0d1420; --fond2:#131d2e; --carte:#182338; --bord:#243149;
+      --txt:#eaf1fb; --doux:#9fb2cc; --accent:#4d9be6;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+      background:radial-gradient(1200px 600px at 50% -10%, #1b2b45 0%, transparent 60%), var(--fond);
+      background-color:var(--fond); color:var(--txt); line-height:1.55;
+    }
+    a { color:inherit; }
+    .enveloppe { max-width:1080px; margin:0 auto; padding:0 22px; }
+
+    /* Barre */
+    header { padding:20px 0; }
+    .barre { display:flex; align-items:center; justify-content:space-between; }
+    .logo { font-weight:800; font-size:20px; letter-spacing:.5px; }
+    .logo span { color:var(--accent); }
+    .lien-connexion { font-size:13.5px; color:var(--doux); text-decoration:none; }
+    .lien-connexion:hover { color:#fff; }
+
+    /* Hero */
+    .hero { text-align:center; padding:56px 0 30px; }
+    .badge {
+      display:inline-block; font-size:12.5px; font-weight:600; letter-spacing:.6px;
+      color:#bfe0ff; background:rgba(77,155,230,.14); border:1px solid rgba(77,155,230,.35);
+      padding:6px 14px; border-radius:999px; text-transform:uppercase;
+    }
+    h1 { font-size:clamp(30px,5vw,50px); line-height:1.1; margin:18px auto 14px; max-width:14ch; font-weight:800; }
+    h1 em { font-style:normal; background:linear-gradient(90deg,var(--bleu),var(--vert),var(--prune));
+            -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .sous { font-size:clamp(16px,2.2vw,19px); color:var(--doux); max-width:52ch; margin:0 auto 30px; }
+
+    /* Formulaire de capture */
+    .capture { max-width:520px; margin:0 auto; }
+    .ligne { display:flex; gap:10px; }
+    .ligne input {
+      flex:1; background:var(--carte); border:1px solid var(--bord); color:var(--txt);
+      border-radius:10px; padding:14px 16px; font-size:15px; outline:none;
+    }
+    .ligne input:focus { border-color:var(--accent); }
+    .cta {
+      background:linear-gradient(90deg,var(--bleu),var(--accent)); color:#fff; border:none;
+      border-radius:10px; padding:14px 22px; font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap;
+    }
+    .cta:hover { filter:brightness(1.08); }
+    .cta:disabled { opacity:.6; cursor:default; }
+    .formules { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+    .pilule {
+      font-size:13px; color:var(--doux); background:transparent; border:1px solid var(--bord);
+      border-radius:999px; padding:7px 14px; cursor:pointer; transition:.15s;
+    }
+    .pilule:hover { color:#fff; border-color:var(--accent); }
+    .pilule.actif { color:#fff; background:rgba(77,155,230,.18); border-color:var(--accent); }
+    .note { font-size:12.5px; color:var(--doux); margin-top:14px; }
+    .compteur { margin-top:22px; font-size:14px; color:var(--doux); }
+    .compteur b { color:#fff; font-size:16px; }
+    #message { min-height:20px; font-size:14px; margin-top:12px; }
+    #message.ok { color:#7fe0a8; }
+    #message.err { color:#ff9b8a; }
+
+    /* Merci */
+    .merci { display:none; text-align:center; max-width:520px; margin:0 auto;
+      background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:26px; }
+    .merci.on { display:block; }
+    .merci .rond { width:54px; height:54px; border-radius:50%; margin:0 auto 12px;
+      background:rgba(47,158,104,.18); border:1px solid rgba(47,158,104,.5);
+      display:flex; align-items:center; justify-content:center; font-size:26px; }
+
+    /* Sections */
+    section { padding:46px 0; }
+    .titre-section { text-align:center; font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
+    .titre-section + h2 { text-align:center; font-size:clamp(24px,3.5vw,32px); margin-bottom:34px; font-weight:750; }
+
+    .modules { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .module { background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:22px; }
+    .module .ico { font-size:26px; }
+    .module h3 { font-size:18px; margin:10px 0 2px; }
+    .module .role { font-size:12.5px; color:var(--doux); text-transform:uppercase; letter-spacing:.5px; }
+    .module p { color:var(--doux); font-size:13.5px; margin:12px 0 12px; }
+    .module ul { list-style:none; font-size:13px; }
+    .module li { padding:4px 0 4px 20px; position:relative; }
+    .module li::before { content:'✓'; position:absolute; left:0; color:var(--vert); font-weight:700; }
+    .module.wms { border-top:3px solid var(--bleu); }
+    .module.tms { border-top:3px solid var(--vert); }
+    .module.oms { border-top:3px solid var(--prune); }
+
+    .prix { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .pack { background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:24px; text-align:center; position:relative; }
+    .pack.populaire { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+    .pack .etiquette { position:absolute; top:-11px; left:50%; transform:translateX(-50%);
+      background:var(--accent); color:#04121f; font-size:11px; font-weight:700; padding:3px 12px; border-radius:999px; text-transform:uppercase; }
+    .pack h3 { font-size:19px; }
+    .pack .tarif { font-size:34px; font-weight:800; margin:10px 0 2px; }
+    .pack .tarif span { font-size:14px; color:var(--doux); font-weight:500; }
+    .pack .argu { color:var(--doux); font-size:13px; min-height:36px; margin-bottom:14px; }
+    .pack ul { list-style:none; font-size:13px; text-align:left; display:inline-block; }
+    .pack li { padding:4px 0 4px 20px; position:relative; }
+    .pack li.inclus::before { content:'✓'; position:absolute; left:0; color:var(--vert); }
+    .pack li.exclus { color:#5f7391; }
+    .pack li.exclus::before { content:'·'; position:absolute; left:6px; }
+    .pack .choisir { margin-top:16px; width:100%; background:transparent; border:1px solid var(--accent);
+      color:#cfe6ff; border-radius:9px; padding:11px; font-weight:600; cursor:pointer; }
+    .pack .choisir:hover { background:var(--accent); color:#04121f; }
+
+    /* Bloc final */
+    .final { text-align:center; background:linear-gradient(180deg,var(--fond2),var(--fond));
+      border:1px solid var(--bord); border-radius:18px; padding:44px 22px; }
+    .final h2 { font-size:clamp(22px,3.5vw,30px); margin-bottom:10px; }
+    .final p { color:var(--doux); margin-bottom:24px; }
+    .final .cta { padding:15px 30px; }
+
+    footer { padding:34px 0 44px; text-align:center; color:var(--doux); font-size:12.5px; }
+    footer a { color:var(--doux); text-decoration:underline; cursor:pointer; }
+
+    /* Panneau métriques (pour le porteur du projet) */
+    .metrics { display:none; margin:16px 0 0; background:var(--carte); border:1px dashed var(--bord);
+      border-radius:12px; padding:18px; text-align:left; }
+    .metrics.on { display:block; }
+    .metrics h4 { font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--accent); margin-bottom:12px; }
+    .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
+    .kpi { background:var(--fond2); border:1px solid var(--bord); border-radius:10px; padding:12px; text-align:center; }
+    .kpi .v { font-size:24px; font-weight:800; }
+    .kpi .l { font-size:11.5px; color:var(--doux); }
+    .repart { font-size:13px; color:var(--doux); }
+    .repart b { color:#fff; }
+
+    @media (max-width:760px){ .modules,.prix,.kpis{ grid-template-columns:1fr; } .ligne{ flex-direction:column; } }
+  </style>
+</head>
+<body>
+  <div class="enveloppe">
+    <header>
+      <div class="barre">
+        <div class="logo">LM<span>SUITE</span></div>
+        <a class="lien-connexion" href="/">J'ai déjà un compte →</a>
+      </div>
+    </header>
+
+    <!-- HERO + capture -->
+    <div class="hero">
+      <div class="badge">Bientôt disponible · Accès anticipé</div>
+      <h1>La logistique <em>modulaire</em>, enfin simple</h1>
+      <p class="sous">Entrepôt, transport et commandes réunis dans une seule plateforme.
+        Vous n'activez — et ne payez — que ce dont vous avez besoin.</p>
+
+      <div class="capture" id="bloc-capture">
+        <form class="ligne" id="form-interet" autocomplete="on">
+          <input type="email" id="email" placeholder="votre@email.com" required aria-label="Adresse e-mail">
+          <button class="cta" type="submit" id="btn-cta">Rejoindre la liste d'attente</button>
+        </form>
+        <div class="formules" id="formules">
+          <button type="button" class="pilule" data-formule="ESSENTIEL">Essentiel · 49 €</button>
+          <button type="button" class="pilule" data-formule="LOGISTIQUE">Logistique · 69 €</button>
+          <button type="button" class="pilule" data-formule="SUITE">Suite complète · 99 €</button>
+        </div>
+        <div id="message"></div>
+        <div class="note">Pas de spam. On vous prévient dès l'ouverture, c'est tout.</div>
+        <div class="compteur" id="compteur"></div>
+      </div>
+
+      <div class="merci" id="merci">
+        <div class="rond">✓</div>
+        <h3>Vous êtes sur la liste 🎉</h3>
+        <p class="sous" id="merci-txt" style="margin:8px auto 0"></p>
+      </div>
+    </div>
+
+    <!-- MODULES -->
+    <section>
+      <div class="titre-section">Trois modules, une plateforme</div>
+      <h2>Activez ce dont vous avez besoin</h2>
+      <div class="modules">
+        <div class="module wms">
+          <div class="ico">📦</div>
+          <div class="role">Entrepôt</div>
+          <h3>LM-WMS</h3>
+          <p>Le cœur logistique : réception, stock, préparation, expédition.</p>
+          <ul>
+            <li>Picking scanné sur smartphone</li>
+            <li>Traçabilité lots &amp; DLC (FEFO)</li>
+            <li>Palettes SSCC &amp; terminal RF</li>
+            <li>Connecteur EDI intégré</li>
+          </ul>
+        </div>
+        <div class="module tms">
+          <div class="ico">🚚</div>
+          <div class="role">Transport</div>
+          <h3>LM-TMS</h3>
+          <p>Le meilleur transporteur, au meilleur prix, sans y penser.</p>
+          <ul>
+            <li>Grilles tarifaires multi-transporteurs</li>
+            <li>Simulateur du moins cher</li>
+            <li>Suivi des expéditions</li>
+            <li>Contrôle des factures transport</li>
+          </ul>
+        </div>
+        <div class="module oms">
+          <div class="ico">🎛️</div>
+          <div class="role">Commandes</div>
+          <h3>LM-OMS</h3>
+          <p>Toutes vos ventes, tous canaux, pilotées d'un seul écran.</p>
+          <ul>
+            <li>Commandes omnicanales</li>
+            <li>Choix transporteur automatique</li>
+            <li>Contrôle du stock avant promesse</li>
+            <li>Suivi 360° jusqu'à la livraison</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRIX -->
+    <section>
+      <div class="titre-section">Tarifs simples, sans engagement</div>
+      <h2>Une formule pour chaque étape</h2>
+      <div class="prix">
+        <div class="pack">
+          <h3>Essentiel</h3>
+          <div class="tarif">49 €<span> HT/mois</span></div>
+          <div class="argu">Démarrez avec le WMS seul.</div>
+          <ul>
+            <li class="inclus">LM-WMS — Entrepôt</li>
+            <li class="exclus">LM-TMS — Transport</li>
+            <li class="exclus">LM-OMS — Commandes</li>
+          </ul>
+          <button class="choisir" data-formule="ESSENTIEL">Ça m'intéresse</button>
+        </div>
+        <div class="pack populaire">
+          <div class="etiquette">Le plus choisi</div>
+          <h3>Logistique</h3>
+          <div class="tarif">69 €<span> HT/mois</span></div>
+          <div class="argu">Entrepôt + transport optimisé.</div>
+          <ul>
+            <li class="inclus">LM-WMS — Entrepôt</li>
+            <li class="inclus">LM-TMS — Transport</li>
+            <li class="exclus">LM-OMS — Commandes</li>
+          </ul>
+          <button class="choisir" data-formule="LOGISTIQUE">Ça m'intéresse</button>
+        </div>
+        <div class="pack">
+          <h3>Suite complète</h3>
+          <div class="tarif">99 €<span> HT/mois</span></div>
+          <div class="argu">Le Logistics Manager complet, omnicanal.</div>
+          <ul>
+            <li class="inclus">LM-WMS — Entrepôt</li>
+            <li class="inclus">LM-TMS — Transport</li>
+            <li class="inclus">LM-OMS — Commandes</li>
+          </ul>
+          <button class="choisir" data-formule="SUITE">Ça m'intéresse</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOC FINAL -->
+    <section>
+      <div class="final">
+        <h2>Soyez parmi les premiers</h2>
+        <p>Accès anticipé, tarif de lancement et accompagnement à la mise en route.</p>
+        <button class="cta" id="cta-bas">Rejoindre la liste d'attente</button>
+      </div>
+    </section>
+
+    <footer>
+      © 2026 LM-SUITE — Logistics Manager modulaire · Entrepôt · Transport · Commandes<br>
+      <a id="lien-resultats">Voir les résultats du smoke test →</a>
+      <div class="metrics" id="metrics">
+        <h4>Tableau de bord — validation de la demande</h4>
+        <div class="kpis">
+          <div class="kpi"><div class="v" id="m-vues">—</div><div class="l">Visites</div></div>
+          <div class="kpi"><div class="v" id="m-inscrits">—</div><div class="l">Inscrits liste d'attente</div></div>
+          <div class="kpi"><div class="v" id="m-taux">—</div><div class="l">Taux de conversion</div></div>
+        </div>
+        <div class="repart" id="m-repart"></div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    var API = {
+      vue:      function(){ return fetch('/api/smoke/vue', {method:'POST'}); },
+      interet:  function(body){ return fetch('/api/smoke/interet', {method:'POST',
+                    headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); },
+      metrics:  function(){ return fetch('/api/smoke/metrics').then(function(r){return r.json();}); }
+    };
+
+    var formuleChoisie = null;
+
+    // Sélecteur de formule (pilules du hero)
+    document.querySelectorAll('#formules .pilule').forEach(function(p){
+      p.addEventListener('click', function(){
+        var dejaActif = p.classList.contains('actif');
+        document.querySelectorAll('#formules .pilule').forEach(function(x){ x.classList.remove('actif'); });
+        if (!dejaActif){ p.classList.add('actif'); formuleChoisie = p.dataset.formule; }
+        else { formuleChoisie = null; }
+      });
+    });
+
+    // Boutons « Ça m'intéresse » des cartes de prix → présélectionne la formule et remonte au formulaire
+    document.querySelectorAll('.pack .choisir').forEach(function(b){
+      b.addEventListener('click', function(){
+        formuleChoisie = b.dataset.formule;
+        document.querySelectorAll('#formules .pilule').forEach(function(x){
+          x.classList.toggle('actif', x.dataset.formule === formuleChoisie);
+        });
+        document.getElementById('bloc-capture').scrollIntoView({behavior:'smooth', block:'center'});
+        document.getElementById('email').focus();
+      });
+    });
+
+    // CTA du bas → renvoie au champ email
+    document.getElementById('cta-bas').addEventListener('click', function(){
+      document.getElementById('bloc-capture').scrollIntoView({behavior:'smooth', block:'center'});
+      document.getElementById('email').focus();
+    });
+
+    // Soumission de la liste d'attente
+    document.getElementById('form-interet').addEventListener('submit', function(e){
+      e.preventDefault();
+      var email = document.getElementById('email').value.trim();
+      var msg = document.getElementById('message');
+      var btn = document.getElementById('btn-cta');
+      msg.className = ''; msg.textContent = '';
+      btn.disabled = true;
+      API.interet({ email: email, formule: formuleChoisie, langue: 'fr' })
+        .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
+        .then(function(res){
+          if (!res.ok){ msg.className='err'; msg.textContent = res.j.erreur || 'Une erreur est survenue.'; btn.disabled=false; return; }
+          // succès → écran de remerciement
+          document.getElementById('bloc-capture').style.display='none';
+          var merci = document.getElementById('merci'); merci.classList.add('on');
+          document.getElementById('merci-txt').textContent = res.j.deja
+            ? 'Vous étiez déjà inscrit — on ne vous oublie pas !'
+            : 'Vous êtes le n°' + res.j.rang + ' sur la liste. On vous écrit dès l\'ouverture.';
+          rafraichirCompteur();
+        })
+        .catch(function(){ msg.className='err'; msg.textContent='Réseau indisponible, réessayez.'; btn.disabled=false; });
+    });
+
+    // Compteur social (« déjà X inscrits »)
+    function rafraichirCompteur(){
+      API.metrics().then(function(m){
+        var c = document.getElementById('compteur');
+        if (m.inscrits > 0) c.innerHTML = '<b>' + m.inscrits + '</b> personne' + (m.inscrits>1?'s':'') + ' déjà sur la liste d\'attente';
+      }).catch(function(){});
+    }
+
+    // Panneau résultats (pour le porteur du projet)
+    document.getElementById('lien-resultats').addEventListener('click', function(){
+      var panneau = document.getElementById('metrics');
+      panneau.classList.toggle('on');
+      if (panneau.classList.contains('on')){
+        API.metrics().then(function(m){
+          document.getElementById('m-vues').textContent = m.vues;
+          document.getElementById('m-inscrits').textContent = m.inscrits;
+          document.getElementById('m-taux').textContent = m.tauxConversion + ' %';
+          var f = m.parFormule || {};
+          document.getElementById('m-repart').innerHTML =
+            'Intérêt par formule — Essentiel <b>' + (f.ESSENTIEL||0) + '</b> · ' +
+            'Logistique <b>' + (f.LOGISTIQUE||0) + '</b> · ' +
+            'Suite <b>' + (f.SUITE||0) + '</b> · sans préférence <b>' + (f.SANS||0) + '</b>';
+        });
+      }
+    });
+
+    // Beacon de visite + compteur au chargement
+    API.vue().catch(function(){});
+    rafraichirCompteur();
+  </script>
+</body>
+</html>

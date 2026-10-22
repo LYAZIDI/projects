@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LM-TMS — Transport</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Identité TMS : même charte que la suite, dominante différente
+       pour distinguer les deux applications d'un coup d'œil */
+    nav { background: #1e3d2f; }
+    nav .logo, nav .groupe { border-color: #2a523f; }
+    nav a:hover, nav a.actif { background: #2a523f; }
+    nav a.actif { border-left-color: #43b97f; }
+    [dir="rtl"] nav a.actif { border-right-color: #43b97f; }
+    nav .pied { border-top-color: #2a523f; }
+    :root { --marine: #1e3d2f; --marine-clair: #2a523f; --accent: #2f9e68; --accent-fonce: #237a50; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">
+      <div>LM-TMS<small data-i18n>Gestion du transport</small></div>
+      <div class="langues">
+        <button data-langue="fr" title="Français">FR</button>
+        <button data-langue="en" title="English">EN</button>
+        <button data-langue="es" title="Español">ES</button>
+        <button data-langue="ar" title="العربية">AR</button>
+      </div>
+    </div>
+    <div class="groupe" data-i18n>Pilotage</div>
+    <a href="#/expeditions" data-vue="expeditions" data-i18n>Expéditions &amp; suivi</a>
+    <div class="groupe" data-i18n>Tarification</div>
+    <a href="#/simulateur" data-vue="simulateur" data-i18n>Simulateur de coût</a>
+    <a href="#/transporteurs" data-vue="transporteurs" data-i18n>Transporteurs &amp; grilles</a>
+    <div class="groupe" data-i18n>Facturation</div>
+    <a href="#/factures" data-vue="factures" data-i18n>Pré-facturation</a>
+    <div class="groupe" data-i18n>Intégration</div>
+    <a href="#/synchronisation" data-vue="synchronisation" data-i18n>Liaison WMS</a>
+    <div class="pied">
+      <div id="pied-utilisateur"></div>
+      <span data-i18n>Suite LM :</span> <a href="http://localhost:8747" target="_blank" data-i18n>LM-WMS (entrepôt)</a>
+    </div>
+  </nav>
+  <main id="contenu"></main>
+  <div id="notifications"></div>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

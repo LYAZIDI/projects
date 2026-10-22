@@ -1,0 +1,9 @@
+{
+  "port": 8750,
+  "wmsUrl": "http://localhost:8747",
+  "tmsUrl": "http://localhost:8748",
+  "omsUrl": "http://localhost:8749",
+  "wmsUrlPublic": "https://precise-branches-solo-installed.trycloudflare.com",
+  "tmsUrlPublic": "https://nuke-level-glucose-surf.trycloudflare.com",
+  "omsUrlPublic": "https://mrna-fair-article-patterns.trycloudflare.com"
+}

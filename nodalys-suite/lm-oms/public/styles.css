@@ -1,0 +1,208 @@
+/* ============================================================
+ *  LM-WMS - IHM superviseur, style poste de pilotage (type LMxt)
+ * ============================================================ */
+
+:root {
+  --marine: #16324f;
+  --marine-clair: #1f4468;
+  --accent: #2f80c3;
+  --accent-fonce: #24659a;
+  --fond: #eef1f5;
+  --carte: #ffffff;
+  --texte: #22303c;
+  --texte-doux: #66788a;
+  --bordure: #d8dfe7;
+  --ok: #2e9e5b;
+  --alerte: #e2a11b;
+  --erreur: #cc4433;
+  --info: #2f80c3;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--texte);
+  background: var(--fond);
+  display: flex;
+}
+
+/* ---------- Barre latérale ---------- */
+nav {
+  width: 215px; min-width: 215px;
+  background: var(--marine);
+  color: #cfdce9;
+  display: flex; flex-direction: column;
+  height: 100vh; position: sticky; top: 0;
+  overflow-y: auto;               /* menu plus haut que l'écran : il défile */
+  scrollbar-width: thin;
+  scrollbar-color: var(--marine-clair) var(--marine);
+}
+nav::-webkit-scrollbar { width: 8px; }
+nav::-webkit-scrollbar-track { background: var(--marine); }
+nav::-webkit-scrollbar-thumb { background: var(--marine-clair); border-radius: 4px; }
+nav .logo {
+  padding: 16px 18px 12px;
+  font-size: 19px; font-weight: 700; color: #fff;
+  border-bottom: 1px solid var(--marine-clair);
+  letter-spacing: 0.5px;
+}
+nav .logo small { display: block; font-size: 10.5px; font-weight: 400; color: #8fa9c0; letter-spacing: 0; }
+nav .groupe { padding: 10px 18px 4px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: #7d97af; }
+nav a {
+  display: block; padding: 8px 18px;
+  color: #cfdce9; text-decoration: none; font-size: 13.5px;
+  border-left: 3px solid transparent;
+}
+nav a:hover { background: var(--marine-clair); color: #fff; }
+nav a.actif { background: var(--marine-clair); color: #fff; border-left-color: var(--accent); font-weight: 600; }
+nav .pied { margin-top: auto; padding: 12px 18px; font-size: 11px; color: #7d97af; border-top: 1px solid var(--marine-clair); }
+nav .pied a { display: inline; padding: 0; border: none; color: #9fc3e2; }
+nav .langues { display: flex; gap: 5px; margin-top: 9px; }
+nav .langues button {
+  background: none; border: 1px solid var(--marine-clair); color: #7d97af;
+  font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+}
+nav .langues button:hover { color: #fff; }
+nav .langues button.actif { background: var(--marine-clair); color: #fff; border-color: var(--accent); }
+
+/* ---------- Contenu ---------- */
+main { flex: 1; padding: 20px 26px 60px; overflow-x: auto; min-height: 100vh; }
+.entete-page { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.entete-page h1 { font-size: 20px; margin: 0; font-weight: 650; }
+.entete-page .outils { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- Cartes / KPI ---------- */
+.grille-kpi { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.kpi {
+  background: var(--carte); border: 1px solid var(--bordure); border-radius: 8px;
+  padding: 12px 14px;
+}
+.kpi .valeur { font-size: 26px; font-weight: 700; color: var(--marine); }
+.kpi .libelle { font-size: 12px; color: var(--texte-doux); margin-top: 2px; }
+.kpi.rouge .valeur { color: var(--erreur); }
+.kpi.vert .valeur { color: var(--ok); }
+.kpi.orange .valeur { color: var(--alerte); }
+
+.carte {
+  background: var(--carte); border: 1px solid var(--bordure); border-radius: 8px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.carte h2 { font-size: 14.5px; margin: 0 0 10px; font-weight: 650; color: var(--marine); }
+.deux-colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 1100px) { .deux-colonnes { grid-template-columns: 1fr; } }
+
+/* ---------- Jauges d'occupation ---------- */
+.jauge { margin-bottom: 10px; }
+.jauge .ligne { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 3px; }
+.jauge .barre { height: 9px; border-radius: 5px; background: #e3e9f0; overflow: hidden; }
+.jauge .barre > div { height: 100%; background: var(--accent); border-radius: 5px; }
+.jauge.pleine .barre > div { background: var(--erreur); }
+
+/* ---------- Tableaux ---------- */
+table { width: 100%; border-collapse: collapse; background: var(--carte); border: 1px solid var(--bordure); border-radius: 8px; overflow: hidden; }
+thead th {
+  text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px;
+  color: var(--texte-doux); background: #f6f8fa;
+  padding: 8px 10px; border-bottom: 1px solid var(--bordure);
+  position: sticky; top: 0;
+}
+tbody td { padding: 7px 10px; border-bottom: 1px solid #edf1f5; font-size: 13px; }
+tbody tr:hover { background: #f2f7fc; }
+tbody tr.selectionnee { background: #e2effa; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.vide { color: var(--texte-doux); font-style: italic; padding: 14px; }
+
+/* ---------- Badges de statut ---------- */
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 650; letter-spacing: 0.3px; white-space: nowrap;
+}
+.badge.gris    { background: #e6eaef; color: #556; }
+.badge.bleu    { background: #dcebf9; color: #1e5a8d; }
+.badge.orange  { background: #fbeed2; color: #8d6511; }
+.badge.vert    { background: #daf1e2; color: #1d6b3d; }
+.badge.violet  { background: #e9e2f7; color: #5b3d94; }
+.badge.rouge   { background: #f9dcd7; color: #99301f; }
+
+/* ---------- Boutons / formulaires ---------- */
+button, .bouton {
+  font: inherit; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--accent-fonce); border-radius: 6px;
+  background: var(--accent); color: #fff;
+  padding: 6px 14px; cursor: pointer;
+}
+button:hover { background: var(--accent-fonce); }
+button.secondaire { background: #fff; color: var(--accent-fonce); border-color: var(--bordure); }
+button.secondaire:hover { background: #f0f5fa; }
+button.danger { background: var(--erreur); border-color: #a5351f; }
+button.petit { padding: 3px 9px; font-size: 12px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+input, select, textarea {
+  font: inherit; font-size: 13px;
+  border: 1px solid var(--bordure); border-radius: 6px;
+  padding: 6px 9px; background: #fff; color: var(--texte);
+}
+input:focus, select:focus { outline: 2px solid #bcd9f2; border-color: var(--accent); }
+label { font-size: 12px; color: var(--texte-doux); display: block; margin-bottom: 3px; }
+.champ { margin-bottom: 10px; }
+.champs-ligne { display: flex; gap: 10px; flex-wrap: wrap; }
+.champs-ligne .champ { flex: 1; min-width: 130px; }
+
+/* ---------- Fenêtre modale ---------- */
+.voile {
+  position: fixed; inset: 0; background: rgba(12, 26, 40, 0.45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 6vh 16px; z-index: 50;
+}
+.modale {
+  background: #fff; border-radius: 10px; padding: 18px 20px;
+  width: 100%; max-width: 620px; max-height: 86vh; overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.modale h2 { margin: 0 0 14px; font-size: 16px; color: var(--marine); }
+.modale .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+/* ---------- Notifications ---------- */
+#notifications { position: fixed; bottom: 18px; right: 18px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+.notification {
+  background: var(--marine); color: #fff; padding: 10px 16px;
+  border-radius: 8px; font-size: 13px; max-width: 380px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  animation: apparition 0.18s ease-out;
+}
+.notification.erreur { background: var(--erreur); }
+.notification.succes { background: var(--ok); }
+@keyframes apparition { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- Divers ---------- */
+.filtres { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+.filtres input, .filtres select { min-width: 140px; }
+a.lien { color: var(--accent-fonce); cursor: pointer; text-decoration: underline; }
+.sous-table { margin: 4px 0 10px; }
+.mono { font-family: Consolas, monospace; font-size: 12.5px; }
+.alerte-bloc {
+  border-left: 4px solid var(--alerte); background: #fdf6e3;
+  padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; font-size: 13px;
+}
+.alerte-bloc.rouge { border-left-color: var(--erreur); background: #fbeae7; }
+
+/* ---------- Sens de lecture droite→gauche (arabe) ----------
+ * dir="rtl" est posé sur <html> par i18n.js ; on corrige les
+ * propriétés physiques que le flex n'inverse pas seul. */
+[dir="rtl"] nav a { border-left: none; border-right: 3px solid transparent; }
+[dir="rtl"] nav a.actif { border-right-color: var(--accent); }
+[dir="rtl"] .entete-page .outils { margin-left: 0; margin-right: auto; }
+[dir="rtl"] th { text-align: right; }
+[dir="rtl"] td.num, [dir="rtl"] th.num { text-align: left; }
+[dir="rtl"] .alerte-bloc { border-left: none; border-right: 4px solid var(--alerte); }
+[dir="rtl"] .alerte-bloc.rouge { border-right-color: var(--erreur); }
+[dir="rtl"] #notifications { right: auto; left: 18px; }
+
+@media print {
+  nav, .entete-page .outils, #notifications { display: none !important; }
+  main { padding: 0; }
+  body { background: #fff; }
+}

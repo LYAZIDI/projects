@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LM-WMS — Superviseur</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav>
+    <div class="logo">
+      <div>LM-WMS<small data-i18n>Pilotage d'entrepôt</small></div>
+      <div class="langues">
+        <button data-langue="fr" title="Français">FR</button>
+        <button data-langue="en" title="English">EN</button>
+        <button data-langue="es" title="Español">ES</button>
+        <button data-langue="ar" title="العربية">AR</button>
+      </div>
+    </div>
+    <div class="groupe" data-i18n>Pilotage</div>
+    <a href="#/dashboard" data-vue="dashboard" data-i18n>Tableau de bord</a>
+    <a href="#/missions" data-vue="missions" data-i18n>Missions</a>
+    <a href="#/mouvements" data-vue="mouvements" data-i18n>Mouvements</a>
+    <a href="#/connexion-rf" data-vue="connexion-rf" data-i18n>Connexion opérateur (RF)</a>
+    <div class="groupe" data-i18n>Flux entrant</div>
+    <a href="#/attendus" data-vue="attendus" data-i18n>Attendus / Réceptions</a>
+    <div class="groupe" data-i18n>Stock</div>
+    <a href="#/stock" data-vue="stock" data-i18n>Stock</a>
+    <a href="#/supports" data-vue="supports" data-i18n>Supports / Palettes</a>
+    <a href="#/inventaires" data-vue="inventaires" data-i18n>Inventaires</a>
+    <div class="groupe" data-i18n>Flux sortant</div>
+    <a href="#/commandes" data-vue="commandes" data-i18n>Commandes</a>
+    <a href="#/vagues" data-vue="vagues" data-i18n>Vagues</a>
+    <a href="#/expeditions" data-vue="expeditions" data-i18n>Colisage / Expéditions</a>
+    <div class="groupe" data-i18n>Référentiels</div>
+    <a href="#/articles" data-vue="articles" data-i18n>Articles</a>
+    <a href="#/emplacements" data-vue="emplacements" data-i18n>Emplacements</a>
+    <a href="#/tiers" data-vue="tiers" data-i18n>Tiers / Transporteurs</a>
+    <div class="groupe" data-i18n>Intégration</div>
+    <a href="#/edi" data-vue="edi" data-i18n>Interfaces EDI</a>
+    <a href="#/utilisateurs" data-vue="utilisateurs" data-role="ADMIN" data-i18n>Utilisateurs</a>
+    <div class="pied">
+      <div id="pied-utilisateur"></div>
+      <span data-i18n>Terminal opérateur :</span> <a href="rf.html" target="_blank" data-i18n>écran RF</a><br>
+      <span data-i18n>Suite LM :</span> <a href="http://localhost:8748" target="_blank">LM-TMS (transport)</a>
+    </div>
+  </nav>
+  <main id="contenu"></main>
+  <div id="notifications"></div>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

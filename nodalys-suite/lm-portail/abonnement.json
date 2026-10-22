@@ -1,0 +1,11 @@
+{
+  "client": "Entrepôt Démonstration SAS",
+  "plan": "LOGISTIQUE",
+  "cycle": "mensuel",
+  "depuis": "2026-01-15",
+  "modules": {
+    "WMS": true,
+    "TMS": true,
+    "OMS": false
+  }
+}

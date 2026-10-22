@@ -1,0 +1,5 @@
+{
+  "port": 8748,
+  "wmsUrl": "http://localhost:8747",
+  "cleIntegration": "LMSUITE-cle-locale-a-remplacer"
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LM-OMS — Commandes</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Identité OMS : dominante prune (WMS = bleu, TMS = vert) */
+    nav { background: #3d2545; }
+    nav .logo, nav .groupe { border-color: #55345f; }
+    nav a:hover, nav a.actif { background: #55345f; }
+    nav a.actif { border-left-color: #c084d8; }
+    [dir="rtl"] nav a.actif { border-right-color: #c084d8; }
+    nav .pied { border-top-color: #55345f; }
+    :root { --marine: #3d2545; --marine-clair: #55345f; --accent: #8e4ea6; --accent-fonce: #703d84; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">
+      <div>LM-OMS<small data-i18n>Tour de contrôle des commandes</small></div>
+      <div class="langues">
+        <button data-langue="fr" title="Français">FR</button>
+        <button data-langue="en" title="English">EN</button>
+        <button data-langue="es" title="Español">ES</button>
+        <button data-langue="ar" title="العربية">AR</button>
+      </div>
+    </div>
+    <div class="groupe" data-i18n>Pilotage</div>
+    <a href="#/tour" data-vue="tour" data-i18n>Tour de contrôle</a>
+    <div class="groupe" data-i18n>Commandes</div>
+    <a href="#/commandes" data-vue="commandes" data-i18n>Toutes les commandes</a>
+    <div class="groupe" data-i18n>Paramétrage</div>
+    <a href="#/canaux" data-vue="canaux" data-i18n>Canaux de vente</a>
+    <a href="#/liaisons" data-vue="liaisons" data-i18n>Liaisons WMS / TMS</a>
+    <div class="pied">
+      <div id="pied-utilisateur"></div>
+      <span data-i18n>Suite LM :</span> <a href="http://localhost:8747" target="_blank">WMS</a> ·
+      <a href="http://localhost:8748" target="_blank">TMS</a>
+    </div>
+  </nav>
+  <main id="contenu"></main>
+  <div id="notifications"></div>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

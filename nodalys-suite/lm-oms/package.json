@@ -1,0 +1,14 @@
+{
+  "name": "lm-oms",
+  "version": "1.0.0",
+  "description": "LM-OMS - Order Management System de la suite LM (tour de contrôle des commandes)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node lib/seed.js",
+    "test": "node test-flux.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "11.10.0"
+  }
+}
