@@ -3,6 +3,9 @@
   "installCommand": "npm install --omit=optional",
   "buildCommand": "",
   "outputDirectory": "public",
+  "regions": [
+    "dub1"
+  ],
   "functions": {
     "api/index.js": {
       "maxDuration": 30,
