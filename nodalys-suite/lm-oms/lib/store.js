@@ -7,18 +7,21 @@
 const fs = require('fs');
 const path = require('path');
 
-let Database = null;
-try {
-  Database = require('better-sqlite3');
-  // Le binding natif ne se charge qu'à l'instanciation : on le vérifie
-  // tout de suite pour basculer en repli JSON si le module est présent
-  // mais incompatible (ex. compilé pour une autre version de Node).
-  new Database(':memory:').close();
-} catch { Database = null; /* repli JSON */ }
-
-/* Mode Turso (hébergement Vercel) : prioritaire si configuré */
+/* Mode Turso (hébergement Vercel) : prioritaire si configuré. better-sqlite3
+ * n'est alors pas chargé du tout (son module natif fait planter la
+ * fonction Vercel à l'arrêt du processus). */
 const turso = require('./turso').depuisEnv();
-if (turso) Database = null;
+
+let Database = null;
+if (!turso) {
+  try {
+    Database = require('better-sqlite3');
+    // Le binding natif ne se charge qu'à l'instanciation : on le vérifie
+    // tout de suite pour basculer en repli JSON si le module est présent
+    // mais incompatible (ex. compilé pour une autre version de Node).
+    new Database(':memory:').close();
+  } catch { Database = null; /* repli JSON */ }
+}
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DATA_FILE = turso ? `Turso ${process.env.TURSO_DATABASE_URL}`
