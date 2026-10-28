@@ -202,6 +202,21 @@ a.lien { color: var(--accent-fonce); cursor: pointer; text-decoration: underline
 [dir="rtl"] .alerte-bloc.rouge { border-right-color: var(--erreur); }
 [dir="rtl"] #notifications { right: auto; left: 18px; }
 
+/* ---------- Copilote superviseur (chat IA) ---------- */
+.cop-carte { display: flex; flex-direction: column; gap: 10px; }
+.cop-fil { min-height: 280px; max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px; }
+.cop-msg { display: flex; }
+.cop-msg.user { justify-content: flex-end; }
+.cop-bulle { max-width: 80%; padding: 9px 13px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+.cop-msg.user .cop-bulle { background: var(--accent, #2f80c3); color: #fff; }
+.cop-msg.assistant .cop-bulle { background: #eef2f7; color: #20303f; border: 1px solid var(--bordure, #e2e8f0); }
+.cop-suggestions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cop-chip { font-size: 12.5px; background: transparent; border: 1px solid var(--bordure, #cbd5e1); border-radius: 999px; padding: 6px 12px; cursor: pointer; color: var(--texte-doux, #475569); }
+.cop-chip:hover { border-color: var(--accent, #2f80c3); color: var(--accent-fonce, #1e5a8a); }
+.cop-saisie { display: flex; gap: 8px; }
+.cop-saisie input { flex: 1; padding: 11px 14px; border: 1px solid var(--bordure, #cbd5e1); border-radius: 10px; font-size: 14px; }
+[dir="rtl"] .cop-msg.user { justify-content: flex-start; }
+
 @media print {
   nav, .entete-page .outils, #notifications { display: none !important; }
   main { padding: 0; }

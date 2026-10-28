@@ -1189,6 +1189,70 @@ async function vueConnexionRf() {
 /* ============================================================
  *  Routage
  * ============================================================ */
+/* ---------- Copilote superviseur (agent IA, lecture seule) ---------- */
+let COPILOTE_HISTO = [];
+function copFormater(t) { return ech(t).replace(/\n/g, '<br>'); }
+
+async function vueCopilote() {
+  let etat = { actif: true };
+  try { etat = await GET('/api/copilote/etat'); } catch { /* état inconnu */ }
+
+  const suggestions = ['Résume-moi la journée', 'Quelles commandes sont en retard et pourquoi ?',
+    'Quelles vagues lancer en priorité ?', 'Y a-t-il des ruptures ?'];
+
+  contenu.innerHTML = `
+    <div class="entete-page"><h1>${tr('Copilote superviseur')}</h1>
+      <div class="outils"><button class="secondaire petit" id="cop-reset">${tr('Nouvelle conversation')}</button></div>
+    </div>
+    ${etat.actif ? '' : `<div class="alerte-bloc">${tr('Le copilote n\'est pas configuré (clé IA manquante).')}</div>`}
+    <div class="carte cop-carte">
+      <div id="cop-fil" class="cop-fil"></div>
+      <div class="cop-suggestions">
+        ${suggestions.map(s => `<button type="button" class="cop-chip">${ech(tr(s))}</button>`).join('')}
+      </div>
+      <form class="cop-saisie" id="cop-form">
+        <input id="cop-input" autocomplete="off" placeholder="${tr('Posez votre question…')}" ${etat.actif ? '' : 'disabled'}>
+        <button type="submit" ${etat.actif ? '' : 'disabled'}>${tr('Envoyer')}</button>
+      </form>
+    </div>`;
+
+  const fil = document.getElementById('cop-fil');
+  const rendreFil = () => {
+    fil.innerHTML = COPILOTE_HISTO.length
+      ? COPILOTE_HISTO.map(m => `<div class="cop-msg ${m.role}"><div class="cop-bulle">${m.role === 'assistant' ? copFormater(m.content) : ech(m.content)}</div></div>`).join('')
+      : `<p class="vide">${tr('Posez une question sur votre entrepôt : stock, commandes, retards, vagues, missions…')}</p>`;
+    fil.scrollTop = fil.scrollHeight;
+  };
+  rendreFil();
+
+  let occupe = false;
+  const envoyer = async (texte) => {
+    texte = (texte || '').trim();
+    if (!texte || occupe || !etat.actif) return;
+    occupe = true;
+    COPILOTE_HISTO.push({ role: 'user', content: texte });
+    const histo = COPILOTE_HISTO.slice(0, -1);
+    COPILOTE_HISTO.push({ role: 'assistant', content: '…', temp: true });
+    rendreFil();
+    const champ = document.getElementById('cop-input');
+    if (champ) champ.value = '';
+    try {
+      const r = await api('POST', '/api/copilote', { message: texte, historique: histo });
+      COPILOTE_HISTO = COPILOTE_HISTO.filter(m => !m.temp);
+      COPILOTE_HISTO.push({ role: 'assistant', content: r.reponse || '(réponse vide)' });
+    } catch (e) {
+      COPILOTE_HISTO = COPILOTE_HISTO.filter(m => !m.temp);
+      COPILOTE_HISTO.push({ role: 'assistant', content: tr('Erreur : {message}', { message: e.message }) });
+    }
+    occupe = false;
+    rendreFil();
+  };
+
+  document.getElementById('cop-form').onsubmit = (e) => { e.preventDefault(); envoyer(document.getElementById('cop-input').value); };
+  document.querySelectorAll('.cop-chip').forEach(b => b.onclick = () => envoyer(b.textContent));
+  document.getElementById('cop-reset').onclick = () => { COPILOTE_HISTO = []; rendreFil(); };
+}
+
 const VUES = {
   dashboard: vueDashboard, attendus: vueAttendus, stock: vueStock,
   commandes: vueCommandes, vagues: vueVagues, missions: vueMissions,
@@ -1196,7 +1260,7 @@ const VUES = {
   mouvements: vueMouvements, articles: vueArticles,
   emplacements: vueEmplacements, tiers: vueTiers,
   supports: vueSupports, edi: vueEdi, utilisateurs: vueUtilisateurs,
-  'connexion-rf': vueConnexionRf,
+  'connexion-rf': vueConnexionRf, copilote: vueCopilote,
 };
 
 async function afficherVue() {

@@ -17,6 +17,7 @@ const QRCode = require('qrcode');
 const store = require('./lib/store');
 const d = require('./lib/domaine');
 const edi = require('./lib/edi');
+const copilote = require('./lib/copilote');
 
 /* ---------- Intégration suite LM (TMS externe) ----------
  * integration.json contient la clé API partagée (accès compte de
@@ -292,6 +293,12 @@ route('GET', '/api/rf/qr', async (p, corps, query) => {
 
 /* ---------- Pilotage ---------- */
 route('GET', '/api/dashboard', () => d.dashboard());
+
+/* ---------- Copilote superviseur (agent IA, lecture seule) ---------- */
+route('GET', '/api/copilote/etat', () => ({ actif: copilote.estActif(), modele: copilote.modele() }), 'SUPERVISEUR');
+route('POST', '/api/copilote', (p, corps, q, contexte) =>
+  copilote.executer({ message: corps.message, historique: corps.historique, utilisateur: contexte.utilisateur }),
+  'SUPERVISEUR');
 
 /* ---------- Serveur ----------
  * Chaque appel API : chargement de la base (store.preparer), exécution,

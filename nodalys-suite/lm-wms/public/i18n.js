@@ -48,6 +48,18 @@ const TRADUCTIONS = {
 
   /* ---------------------------------------------------------- */
   en: {
+    /* --- Copilote superviseur --- */
+    'Copilote': 'Copilot',
+    'Copilote superviseur': 'Supervisor copilot',
+    'Nouvelle conversation': 'New conversation',
+    'Envoyer': 'Send',
+    'Posez votre question…': 'Ask your question…',
+    'Le copilote n\'est pas configuré (clé IA manquante).': 'The copilot is not configured (AI key missing).',
+    'Posez une question sur votre entrepôt : stock, commandes, retards, vagues, missions…': 'Ask about your warehouse: stock, orders, delays, waves, tasks…',
+    'Résume-moi la journée': 'Summarize the day',
+    'Quelles commandes sont en retard et pourquoi ?': 'Which orders are late and why?',
+    'Quelles vagues lancer en priorité ?': 'Which waves to release first?',
+    'Y a-t-il des ruptures ?': 'Are there any shortages?',
     /* --- Général / connexion --- */
     'LM-WMS — Superviseur': 'LM-WMS — Supervisor',
     'Pilotage d\'entrepôt': 'Warehouse control',
@@ -429,6 +441,18 @@ const TRADUCTIONS = {
 
   /* ---------------------------------------------------------- */
   es: {
+    /* --- Copilote superviseur --- */
+    'Copilote': 'Copiloto',
+    'Copilote superviseur': 'Copiloto del supervisor',
+    'Nouvelle conversation': 'Nueva conversación',
+    'Envoyer': 'Enviar',
+    'Posez votre question…': 'Escriba su pregunta…',
+    'Le copilote n\'est pas configuré (clé IA manquante).': 'El copiloto no está configurado (falta la clave de IA).',
+    'Posez une question sur votre entrepôt : stock, commandes, retards, vagues, missions…': 'Pregunte sobre su almacén: stock, pedidos, retrasos, olas, tareas…',
+    'Résume-moi la journée': 'Resume el día',
+    'Quelles commandes sont en retard et pourquoi ?': '¿Qué pedidos van con retraso y por qué?',
+    'Quelles vagues lancer en priorité ?': '¿Qué olas lanzar primero?',
+    'Y a-t-il des ruptures ?': '¿Hay roturas de stock?',
     /* --- Général / connexion --- */
     'LM-WMS — Superviseur': 'LM-WMS — Supervisor',
     'Pilotage d\'entrepôt': 'Pilotaje de almacén',
@@ -810,6 +834,18 @@ const TRADUCTIONS = {
 
   /* ---------------------------------------------------------- */
   ar: {
+    /* --- Copilote superviseur --- */
+    'Copilote': 'المساعد الآلي',
+    'Copilote superviseur': 'مساعد المشرف',
+    'Nouvelle conversation': 'محادثة جديدة',
+    'Envoyer': 'إرسال',
+    'Posez votre question…': 'اطرح سؤالك…',
+    'Le copilote n\'est pas configuré (clé IA manquante).': 'المساعد غير مُهيأ (مفتاح الذكاء الاصطناعي مفقود).',
+    'Posez une question sur votre entrepôt : stock, commandes, retards, vagues, missions…': 'اطرح سؤالاً عن مستودعك: المخزون، الطلبات، التأخيرات، الموجات، المهام…',
+    'Résume-moi la journée': 'لخّص لي اليوم',
+    'Quelles commandes sont en retard et pourquoi ?': 'ما الطلبات المتأخرة ولماذا؟',
+    'Quelles vagues lancer en priorité ?': 'أي الموجات تُطلق أولاً؟',
+    'Y a-t-il des ruptures ?': 'هل توجد حالات نفاد؟',
     /* --- Général / connexion --- */
     'LM-WMS — Superviseur': 'LM-WMS — المشرف',
     'Pilotage d\'entrepôt': 'إدارة المستودع',
